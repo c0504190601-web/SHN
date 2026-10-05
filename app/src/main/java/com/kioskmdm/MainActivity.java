@@ -112,6 +112,7 @@ public class MainActivity extends Activity {
     private void route() {
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
+        ensureLockTask();
         if (!BackKeyService.enabled(this) || !Prefs.opt(this, "back_hold_tested", false)) {
             recovery("קיצור החזור עדיין לא הוגדר או לא זוהה במכשיר הזה. מנהל יכול להשלים את ההגדרה באמצעות הקוד.");
             return;
@@ -131,7 +132,7 @@ public class MainActivity extends Activity {
         lockedSurface();
         Policy.applyBlocked(this);
         try {
-            if (Policy.owner(this) && Policy.d(this).isLockTaskPermitted(getPackageName())) startLockTask();
+            ensureLockTask();
             opening = true;
             lastLaunch = SystemClock.uptimeMillis();
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
@@ -140,6 +141,17 @@ public class MainActivity extends Activity {
             opening = false;
             recovery("לא ניתן לפתוח את האפליקציה הראשית. נדרשת בדיקת מנהל.");
         }
+    }
+
+    private void ensureLockTask() {
+        if (Prefs.maintenance(this)) return;
+        try {
+            android.app.ActivityManager manager = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            if (Policy.owner(this) && Policy.d(this).isLockTaskPermitted(getPackageName())
+                    && manager.getLockTaskModeState() == android.app.ActivityManager.LOCK_TASK_MODE_NONE) {
+                startLockTask();
+            }
+        } catch (RuntimeException exception) { UI.msg(this, "לא ניתן להפעיל נעילת קיוסק כעת"); }
     }
 
     private void recovery(String message) {
