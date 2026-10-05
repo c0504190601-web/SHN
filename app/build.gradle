@@ -3,6 +3,16 @@ plugins { id 'com.android.application' }
 android {
     namespace 'com.kioskmdm'
     compileSdk 35
+    // Pin the debug signer to the file restored by CI. Android user-home overrides
+    // otherwise cause a fresh key to be generated outside the cached path.
+    signingConfigs {
+        debug {
+            storeFile file("${System.getProperty('user.home')}/.android/debug.keystore")
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     defaultConfig {
         applicationId 'com.kioskmdm'
         minSdk 26
