@@ -1,18 +1,46 @@
 package com.kioskmdm;
-import android.app.*;import android.content.*;import android.content.pm.*;import android.os.*;import android.provider.Settings;import android.text.InputType;import android.widget.*;import java.util.*;
-public class MainActivity extends Activity{
- EditText pin,pin2;ArrayList<String> pk=new ArrayList<>(),names=new ArrayList<>();Spinner sp;LinearLayout l;
+import android.app.*;
+import android.content.*;
+import android.content.pm.*;
+import android.os.*;
+import android.provider.Settings;
+import android.text.InputType;
+import android.widget.*;
+import java.util.*;
+
+public class MainActivity extends Activity {
+ EditText pin,pin2; ArrayList<String> pk=new ArrayList<>(),names=new ArrayList<>(); Spinner sp; LinearLayout l;
  protected void onCreate(Bundle b){super.onCreate(b);if(!Prefs.setup(this))setup();else launch();}
- void setup(){l=UI.root(this,"הגדרת Kiosk MDM");l.addView(UI.note(this,Policy.owner(this)?"✓ הרשאת Device Owner פעילה":"לפני הנעילה יש להגדיר את האפליקציה כ-Device Owner"));
-  pin=new EditText(this);pin.setHint("קוד מנהל – לפחות 4 ספרות");pin.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin);pin2=new EditText(this);pin2.setHint("אימות קוד מנהל");pin2.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin2);
-  l.addView(UI.note(this,"הגנות"));addOpt("חסום איפוס להגדרות יצרן","reset",true);addOpt("חסום מצב בטוח (Safe Mode)","safe",true);addOpt("חסום ADB / אפשרויות מפתחים","adb",false);addOpt("חסום התקנה ממקורות לא ידועים","install",true);addOpt("חסום הסרת אפליקציות","uninstall",true);addOpt("חסום הוספת משתמשים","users",true);addOpt("חסום שורת מצב והתראות","status",true);
-  l.addView(UI.note(this,"בחר אפליקציה ראשית"));PackageManager pm=getPackageManager();Intent q=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);for(ResolveInfo r:pm.queryIntentActivities(q,0)){String p=r.activityInfo.packageName;if(p.equals(getPackageName()))continue;Intent test=pm.getLaunchIntentForPackage(p);if(test!=null){pk.add(p);names.add(r.loadLabel(pm)+"  •  "+p);}}sp=new Spinner(this);sp.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));l.addView(sp);
+ void setup(){
+  l=UI.root(this,"הגדרת Kiosk MDM");
+  l.addView(UI.note(this,Policy.owner(this)?"✓ הרשאת Device Owner פעילה":"לפני הנעילה יש להגדיר את האפליקציה כ-Device Owner"));
+  pin=new EditText(this);pin.setHint("קוד מנהל – לפחות 4 ספרות");pin.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin);
+  pin2=new EditText(this);pin2.setHint("אימות קוד מנהל");pin2.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin2);
+  l.addView(UI.note(this,"הגנות"));
+  addOpt("חסום איפוס להגדרות יצרן","reset",true);addOpt("חסום מצב בטוח (Safe Mode)","safe",true);addOpt("חסום ADB / אפשרויות מפתחים","adb",false);addOpt("חסום התקנת אפליקציות","install",true);addOpt("חסום הסרת אפליקציות","uninstall",true);addOpt("חסום הוספת משתמשים","users",true);addOpt("חסום שורת מצב והתראות","status",true);
+  l.addView(UI.note(this,"בחר אפליקציה ראשית"));
+  PackageManager pm=getPackageManager();Intent q=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+  for(ResolveInfo r:pm.queryIntentActivities(q,0)){String p=r.activityInfo.packageName;if(p.equals(getPackageName()))continue;if(pm.getLaunchIntentForPackage(p)!=null){pk.add(p);names.add(r.loadLabel(pm)+"  •  "+p);}}
+  sp=new Spinner(this);sp.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));l.addView(sp);
   Button overlay=UI.b(this,"אישור כפתור הגדרות צף");overlay.setOnClickListener(v->{if(Build.VERSION.SDK_INT>=23&&!Settings.canDrawOverlays(this))startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,android.net.Uri.parse("package:"+getPackageName())));});l.addView(overlay);
   Button go=UI.b(this,"הפעל הגנה ונעל את המכשיר");go.setOnClickListener(v->finishSetup());l.addView(go);
  }
  void addOpt(String label,String key,boolean def){Switch s=UI.sw(this,label,Prefs.opt(this,key,def));s.setOnCheckedChangeListener((v,on)->Prefs.setOpt(this,key,on));l.addView(s);}
- void finishSetup(){if(!Policy.owner(this)){UI.msg(this,"Device Owner עדיין לא פעיל");return;}if(pin.getText().length()<4){UI.msg(this,"קוד המנהל חייב להכיל לפחות 4 ספרות");return;}if(!pin.getText().toString().equals(pin2.getText().toString())){UI.msg(this,"הקודים אינם זהים");return;}if(pk.isEmpty()||sp.getSelectedItemPosition()<0){UI.msg(this,"לא נמצאה אפליקציה ראשית תקינה");return;}String p=pk.get(sp.getSelectedItemPosition());if(getPackageManager().getLaunchIntentForPackage(p)==null){UI.msg(this,"האפליקציה שבחרת אינה ניתנת להפעלה");return;}Prefs.finish(this,p,pin.getText().toString());Policy.apply(this,p);startService(new Intent(this,QuickAccessService.class));launch();}
+ void finishSetup(){
+  if(!Policy.owner(this)){UI.msg(this,"Device Owner עדיין לא פעיל");return;}
+  if(pin.getText().length()<4){UI.msg(this,"קוד המנהל חייב להכיל לפחות 4 ספרות");return;}
+  if(!pin.getText().toString().equals(pin2.getText().toString())){UI.msg(this,"הקודים אינם זהים");return;}
+  if(pk.isEmpty()||sp.getSelectedItemPosition()<0){UI.msg(this,"לא נמצאה אפליקציה ראשית תקינה");return;}
+  String p=pk.get(sp.getSelectedItemPosition());Prefs.finish(this,p,pin.getText().toString());Policy.apply(this,p);startService(new Intent(this,QuickAccessService.class));launch();
+ }
  protected void onResume(){super.onResume();}
- void launch(){if(Prefs.maintenance(this))return;String p=Prefs.main(this);Intent i=getPackageManager().getLaunchIntentForPackage(p);if(i==null){emergency();return;}Policy.applyBlocked(this);startService(new Intent(this,QuickAccessService.class));if(Policy.owner(this))try{startLockTask();}catch(Exception ignored){}i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);startActivity(i);moveTaskToBack(true);}\n @Override public void onBackPressed(){if(Prefs.setup(this)&&!Prefs.maintenance(this)){launch();}else super.onBackPressed();}
+ void launch(){
+  if(Prefs.maintenance(this))return;
+  String p=Prefs.main(this);Intent i=getPackageManager().getLaunchIntentForPackage(p);if(i==null){emergency();return;}
+  Policy.applyBlocked(this);startService(new Intent(this,QuickAccessService.class));
+  if(Policy.owner(this))try{startLockTask();}catch(Exception ignored){}
+  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);startActivity(i);moveTaskToBack(true);
+ }
+ @Override public void onBackPressed(){if(Prefs.setup(this)&&!Prefs.maintenance(this))launch();else super.onBackPressed();}
  void emergency(){l=UI.root(this,"המכשיר נעול");l.addView(UI.note(this,"האפליקציה הראשית אינה זמינה. ההגנה נשארה פעילה."));Button a=UI.b(this,"מנהל 🔒");a.setOnClickListener(v->startActivity(new Intent(this,AdminActivity.class)));l.addView(a);}
 }
