@@ -54,6 +54,7 @@ public class AdminActivity extends Activity {
         button("הגנות והגבלות", this::manage);
         button("אפליקציות ואפליקציה ראשית", this::apps);
         button("שינוי קוד מנהל", this::changePin);
+        button("הסרת הניהול מהמכשיר", this::removeManagement);
         button("כניסה לתחזוקה והגדרת קיצור החזור", () -> {
             enterMaintenance();
             startActivity(new Intent(this, AccessSetupActivity.class));
@@ -152,6 +153,27 @@ public class AdminActivity extends Activity {
             });
             card.addView(blocked);
         }
+    }
+
+    private void removeManagement() {
+        if (!Policy.owner(this)) { UI.msg(this, "האפליקציה אינה Device Owner"); return; }
+        new AlertDialog.Builder(this)
+                .setTitle("הסרת ניהול")
+                .setMessage("הפעולה תסיר את הרשאות הניהול והגנות הקיוסק מהמכשיר. להמשיך?")
+                .setNegativeButton("ביטול", null)
+                .setPositiveButton("הסר ניהול", (dialog, which) -> {
+                    try {
+                        enterMaintenance();
+                        Policy.d(this).clearDeviceOwnerApp(getPackageName());
+                        Prefs.p(this).edit().clear().apply();
+                        UI.msg(this, "הניהול הוסר מהמכשיר");
+                        startActivity(new Intent(this, MainActivity.class)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK));
+                        finish();
+                    } catch (RuntimeException exception) {
+                        UI.msg(this, "לא ניתן להסיר את הניהול במכשיר הזה");
+                    }
+                }).show();
     }
 
     private void changePin() {
