@@ -14,22 +14,14 @@ import android.widget.TextView;
 /** Observes key events only. Does not read screen contents or consume normal Back. */
 public class BackKeyService extends AccessibilityService {
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final BackHoldState hold = new BackHoldState();
+    private int backTaps;
+    private long firstTapAt;
     private WindowManager windows;
     private View gear;
     private boolean receiverRegistered;
     private static BackKeyService instance;
     private static boolean testing;
     private final Runnable dismiss = this::hide;
-    private final Runnable reveal = () -> {
-        PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
-        KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-        if (!power.isInteractive() || keyguard.isKeyguardLocked()) { cancel(); return; }
-        if (hold.fireIfDue(SystemClock.uptimeMillis())) {
-            if (testing) Prefs.setOpt(this, "back_hold_tested", true);
-            show();
-        }
-    };
     private final BroadcastReceiver screenOff = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) { cancel(); hide(); }
     };
@@ -68,18 +60,26 @@ public class BackKeyService extends AccessibilityService {
     @Override protected boolean onKeyEvent(KeyEvent event) {
         if (event.getKeyCode() != KeyEvent.KEYCODE_BACK) return false;
         if (!testing && (!Prefs.setup(this) || Prefs.maintenance(this))) { cancel(); return false; }
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (hold.down(SystemClock.uptimeMillis(), event.getRepeatCount() != 0)) {
-                handler.postDelayed(reveal, BackHoldState.HOLD_MS);
+        if (event.getAction() == KeyEvent.ACTION_UP) {
+            long now = SystemClock.uptimeMillis();
+            if (firstTapAt == 0 || now - firstTapAt > 3000) {
+                firstTapAt = now;
+                backTaps = 1;
+            } else {
+                backTaps++;
             }
-        } else if (event.getAction() == KeyEvent.ACTION_UP) {
-            cancel();
+            if (backTaps >= 5) {
+                backTaps = 0;
+                firstTapAt = 0;
+                if (testing) Prefs.setOpt(this, "back_hold_tested", true);
+                show();
+            }
         }
         // Both halves of the event stream keep their normal system behavior.
         return false;
     }
 
-    private void cancel() { hold.cancel(); handler.removeCallbacks(reveal); }
+    private void cancel() { backTaps = 0; firstTapAt = 0; }
 
     private void show() {
         hide();
@@ -93,7 +93,7 @@ public class BackKeyService extends AccessibilityService {
         button.setElevation(UI.dp(this, 6));
         button.setOnClickListener(v -> {
             hide();
-            if (testing) { UI.msg(this, "בדיקת לחיצה של 5 שניות הצליחה"); return; }
+            if (testing) { UI.msg(this, "בדיקת 5 לחיצות הצליחה"); return; }
             if (!Prefs.setup(this) || Prefs.maintenance(this)) return;
             try {
                 startActivity(new Intent(this, SettingsActivity.class)
