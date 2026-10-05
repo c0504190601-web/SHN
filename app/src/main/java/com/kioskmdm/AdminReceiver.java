@@ -1,0 +1,1 @@
+package com.kioskmdm; public class AdminReceiver extends android.app.admin.DeviceAdminReceiver {}
