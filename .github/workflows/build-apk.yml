@@ -1,4 +1,5 @@
 name: Build Android APK
+# rebuild: fixed-source-v4
 
 on:
   workflow_dispatch:
