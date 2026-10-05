@@ -1,11 +1,140 @@
 package com.kioskmdm;
-import android.app.*;import android.content.*;import android.graphics.Color;import android.graphics.drawable.GradientDrawable;import android.view.*;import android.widget.*;
-public final class UI{
- static int dp(Context c,int n){return(int)(n*c.getResources().getDisplayMetrics().density+.5f);}
- static GradientDrawable bg(int color,float radius){GradientDrawable g=new GradientDrawable();g.setColor(color);g.setCornerRadius(radius);return g;}
- static LinearLayout root(Activity a,String title){a.getWindow().setStatusBarColor(Color.rgb(15,35,70));ScrollView s=new ScrollView(a);s.setFillViewport(true);LinearLayout l=new LinearLayout(a);l.setOrientation(LinearLayout.VERTICAL);l.setPadding(dp(a,20),dp(a,24),dp(a,20),dp(a,32));l.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);l.setBackgroundColor(Color.rgb(245,247,251));TextView t=new TextView(a);t.setText(title);t.setTextSize(27);t.setTextColor(Color.rgb(18,43,82));t.setGravity(Gravity.RIGHT);t.setPadding(dp(a,4),0,dp(a,4),dp(a,20));l.addView(t);s.addView(l);a.setContentView(s);return l;}
- static Button b(Activity a,String s){Button b=new Button(a);b.setText(s);b.setTextSize(16);b.setTextColor(Color.WHITE);b.setAllCaps(false);b.setGravity(Gravity.CENTER);b.setBackground(bg(Color.rgb(31,91,190),dp(a,14)));b.setElevation(dp(a,2));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(a,56));p.setMargins(0,dp(a,7),0,dp(a,7));b.setLayoutParams(p);return b;}
- static Switch sw(Activity a,String s,boolean on){Switch v=new Switch(a);v.setText(s);v.setTextSize(16);v.setTextColor(Color.rgb(30,40,55));v.setChecked(on);v.setGravity(Gravity.CENTER_VERTICAL);v.setPadding(dp(a,16),dp(a,14),dp(a,16),dp(a,14));v.setBackground(bg(Color.WHITE,dp(a,14)));v.setElevation(dp(a,1));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,dp(a,5),0,dp(a,5));v.setLayoutParams(p);return v;}
- static TextView note(Activity a,String s){TextView v=new TextView(a);v.setText(s);v.setTextSize(14);v.setTextColor(Color.rgb(85,95,110));v.setGravity(Gravity.RIGHT);v.setPadding(dp(a,4),dp(a,8),dp(a,4),dp(a,10));return v;}
- static void msg(Context c,String s){Toast.makeText(c,s,Toast.LENGTH_SHORT).show();}
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.RippleDrawable;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.*;
+
+public final class UI {
+    static final int INK = 0xff17253c, MUTED = 0xff65748b, ACCENT = 0xff3568e8;
+    static final int BACKGROUND = 0xfff3f6fc;
+
+    static int dp(Context c, int n) {
+        return (int) (n * c.getResources().getDisplayMetrics().density + .5f);
+    }
+
+    static GradientDrawable bg(int color, float radius) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(color);
+        drawable.setCornerRadius(radius);
+        return drawable;
+    }
+
+    static LinearLayout root(Activity a, String title) {
+        a.getWindow().setStatusBarColor(BACKGROUND);
+        a.getWindow().setNavigationBarColor(BACKGROUND);
+        a.getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        ScrollView scroll = new ScrollView(a);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(BACKGROUND);
+        // Keep controls outside status/navigation bars, including Android 15 edge-to-edge.
+        scroll.setOnApplyWindowInsetsListener((v, insets) -> {
+            v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            return insets.consumeSystemWindowInsets();
+        });
+        LinearLayout root = new LinearLayout(a);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        root.setPadding(dp(a, 22), dp(a, 24), dp(a, 22), dp(a, 32));
+        TextView brand = note(a, "KIOSK  /  סביבת עבודה מוגנת");
+        brand.setTextColor(ACCENT);
+        brand.setTextSize(12);
+        root.addView(brand);
+        TextView heading = note(a, title);
+        heading.setTextColor(INK);
+        heading.setTextSize(30);
+        heading.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        heading.setPadding(0, dp(a, 4), 0, dp(a, 22));
+        root.addView(heading);
+        scroll.addView(root);
+        a.setContentView(scroll);
+        scroll.requestApplyInsets();
+        return root;
+    }
+
+    static LinearLayout card(Activity a, LinearLayout parent, String title) {
+        LinearLayout card = new LinearLayout(a);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(a, 16), dp(a, 12), dp(a, 16), dp(a, 16));
+        card.setBackground(bg(Color.WHITE, dp(a, 22)));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, dp(a, 6), 0, dp(a, 10));
+        parent.addView(card, params);
+        TextView label = note(a, title);
+        label.setTextSize(18);
+        label.setTextColor(INK);
+        label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        card.addView(label);
+        return card;
+    }
+
+    static Button b(Activity a, String text) {
+        Button button = new Button(a);
+        button.setText(text);
+        button.setTextSize(16);
+        button.setTextColor(Color.WHITE);
+        button.setAllCaps(false);
+        button.setGravity(Gravity.CENTER);
+        button.setMinHeight(dp(a, 54));
+        button.setPadding(dp(a, 16), dp(a, 12), dp(a, 16), dp(a, 12));
+        button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x30ffffff),
+                bg(ACCENT, dp(a, 16)), null));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, dp(a, 6), 0, dp(a, 6));
+        button.setLayoutParams(params);
+        return button;
+    }
+
+    static Button secondary(Activity a, String text) {
+        Button button = b(a, text);
+        button.setTextColor(ACCENT);
+        button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x203568e8),
+                bg(0xffeaf0ff, dp(a, 16)), null));
+        return button;
+    }
+
+    static Switch sw(Activity a, String text, boolean on) {
+        Switch sw = new Switch(a);
+        sw.setText(text);
+        sw.setTextSize(16);
+        sw.setTextColor(INK);
+        sw.setChecked(on);
+        sw.setSwitchPadding(dp(a, 18));
+        sw.setGravity(Gravity.CENTER_VERTICAL);
+        sw.setMinHeight(dp(a, 62));
+        sw.setPadding(dp(a, 14), dp(a, 14), dp(a, 14), dp(a, 14));
+        sw.setBackground(bg(Color.WHITE, dp(a, 16)));
+        sw.setThumbTintList(new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{ACCENT, 0xff8a96a9}));
+        sw.setTrackTintList(new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{0xffcbd9fc, 0xffe3e8ef}));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.setMargins(0, dp(a, 4), 0, dp(a, 4));
+        sw.setLayoutParams(params);
+        return sw;
+    }
+
+    static TextView note(Activity a, String text) {
+        TextView view = new TextView(a);
+        view.setText(text);
+        view.setTextSize(14);
+        view.setTextColor(MUTED);
+        view.setGravity(Gravity.START);
+        view.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG_RTL);
+        view.setLineSpacing(dp(a, 3), 1);
+        view.setPadding(0, dp(a, 8), 0, dp(a, 10));
+        return view;
+    }
+
+    static void msg(Context c, String text) {
+        Toast.makeText(c, text, Toast.LENGTH_SHORT).show();
+    }
 }

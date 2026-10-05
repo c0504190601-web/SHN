@@ -1,12 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
- <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
  <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
- <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
- <application android:theme="@style/AppTheme" android:label="Kiosk MDM" android:allowBackup="false" android:supportsRtl="true">
+ <queries><intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent></queries>
+ <application android:enableOnBackInvokedCallback="false" android:theme="@style/AppTheme" android:label="Kiosk MDM" android:allowBackup="false" android:supportsRtl="true">
   <receiver android:name=".AdminReceiver" android:permission="android.permission.BIND_DEVICE_ADMIN" android:exported="true"><meta-data android:name="android.app.device_admin" android:resource="@xml/device_admin"/><intent-filter><action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/></intent-filter></receiver>
   <receiver android:name=".BootReceiver" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/></intent-filter></receiver>
-  <service android:name=".QuickAccessService" android:exported="false"/>
+  <service android:name=".BackKeyService" android:label="@string/back_service_name" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true">
+   <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+   <meta-data android:name="android.accessibilityservice" android:resource="@xml/back_accessibility"/>
+  </service>
+  <activity android:name=".AccessSetupActivity" android:exported="false"/>
   <activity android:name=".SettingsActivity" android:exported="false"/>
   <activity android:name=".AdminActivity" android:exported="false"/>
   <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask" android:excludeFromRecents="true">

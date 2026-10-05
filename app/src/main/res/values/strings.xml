@@ -1,1 +1,3 @@
-<resources><string name="app_name">Kiosk MDM</string><string name="admin_desc">Kiosk device administrator</string></resources>
+<resources><string name="app_name">Kiosk MDM</string><string name="admin_desc">Kiosk device administrator</string><string name="back_service_name">Kiosk MDM — לחיצה ארוכה על חזור</string>
+<string name="back_service_description">מציג כפתור הגדרות אחרי החזקת חזור במשך 5 שניות במכשירים שמעבירים אירועי מקש. אינו קורא את תוכן המסך.</string>
+</resources>
