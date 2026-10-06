@@ -10,7 +10,7 @@ import java.util.*;
 
 public class MainActivity extends Activity {
  EditText pin,pin2; ArrayList<String> pk=new ArrayList<>(),names=new ArrayList<>(); Spinner sp; LinearLayout l;
- protected void onCreate(Bundle b){super.onCreate(b);if(!Prefs.setup(this))setup();else launch();}
+ protected void onCreate(Bundle b){super.onCreate(b);if(!Prefs.setup(this)&&Policy.owner(this)&&Prefs.romConfigured())Prefs.bootstrapFromRom(this);if(!Prefs.setup(this))setup();else launch();}
  void setup(){
   l=UI.root(this,"הגדרת Kiosk MDM");
   l.addView(UI.note(this,Policy.owner(this)?"✓ הרשאת Device Owner פעילה":"לפני הנעילה יש להגדיר את האפליקציה כ-Device Owner"));
