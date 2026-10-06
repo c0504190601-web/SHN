@@ -19,7 +19,7 @@ public class BackKeyService extends AccessibilityService {
     private boolean receiverRegistered;
     private static BackKeyService instance;
     private final BroadcastReceiver screenOff = new BroadcastReceiver() {
-        @Override public void onReceive(Context context, Intent intent) { cancel(); hide(); }
+        @Override public void onReceive(Context context, Intent intent) { hide(); }
     };
 
     static boolean enabled(Context context) {
@@ -32,11 +32,6 @@ public class BackKeyService extends AccessibilityService {
                             info.getResolveInfo().serviceInfo.name))) return true;
         }
         return false;
-    }
-
-    static void setTesting(boolean value) {
-        testing = value;
-        if (instance != null) instance.refreshGear();
     }
 
     static void dismissButton() {
