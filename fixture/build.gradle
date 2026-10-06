@@ -5,7 +5,7 @@ android {
     defaultConfig {
         applicationId 'com.kioskmdm.fixture'
         minSdk 26
-        targetSdk 27
+        targetSdk 35
         versionCode 1
         versionName '1.0'
     }
