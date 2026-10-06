@@ -1,0 +1,5 @@
+# KioskMDM ROM bootstrap configuration
+version=1
+main_package=CHANGE_ME
+pin_salt=CHANGE_ME_BASE64
+pin_hash=CHANGE_ME_BASE64
