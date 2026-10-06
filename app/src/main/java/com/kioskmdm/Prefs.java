@@ -1,6 +1,7 @@
 package com.kioskmdm;
-import android.content.*;import android.util.Base64;import java.security.*;import java.nio.charset.StandardCharsets;import java.util.*;
+import android.content.*;import android.util.Base64;import java.security.*;import java.nio.charset.StandardCharsets;import java.util.*;import java.io.*;
 public final class Prefs{
+ static final String ROM_CFG="/system/etc/kioskmdm.conf";
  static android.content.SharedPreferences p(Context c){return c.getSharedPreferences("kiosk",0);}
  static boolean setup(Context c){return p(c).getBoolean("setup",false);} static String main(Context c){return p(c).getString("main","");}
  static boolean opt(Context c,String k,boolean d){return p(c).getBoolean(k,d);} static void setOpt(Context c,String k,boolean v){p(c).edit().putBoolean(k,v).apply();}
@@ -10,4 +11,7 @@ public final class Prefs{
  static void main(Context c,String s){p(c).edit().putString("main",s).apply();} static boolean maintenance(Context c){return p(c).getBoolean("maintenance",false);} static void maintenance(Context c,boolean b){p(c).edit().putBoolean("maintenance",b).apply();}
  static Set<String> blocked(Context c){return new HashSet<>(p(c).getStringSet("blocked",Collections.emptySet()));} static void blocked(Context c,Set<String>s){p(c).edit().putStringSet("blocked",new HashSet<>(s)).apply();}
  static String hash(String s,byte[] salt){try{MessageDigest md=MessageDigest.getInstance("SHA-256");md.update(salt);for(int i=0;i<12000;i++){md.update(s.getBytes(StandardCharsets.UTF_8));md.update(salt);}return Base64.encodeToString(md.digest(),Base64.NO_WRAP);}catch(Exception e){return "";}}
+ static Map<String,String> rom(){Map<String,String> out=new HashMap<>();File f=new File(ROM_CFG);if(!f.isFile())return out;try{BufferedReader r=new BufferedReader(new FileReader(f));String line;while((line=r.readLine())!=null){line=line.trim();if(line.length()==0||line.startsWith("#"))continue;int i=line.indexOf('=');if(i>0)out.put(line.substring(0,i).trim(),line.substring(i+1).trim());}r.close();}catch(Exception ignored){}return out;}
+ static boolean romConfigured(){Map<String,String> m=rom();return "1".equals(m.get("version"))&&m.containsKey("main_package")&&m.containsKey("pin_salt")&&m.containsKey("pin_hash");}
+ static boolean bootstrapFromRom(Context c){if(setup(c))return true;Map<String,String> m=rom();if(!"1".equals(m.get("version")))return false;String main=m.get("main_package"),salt=m.get("pin_salt"),pin=m.get("pin_hash");if(main==null||main.length()==0||salt==null||pin==null)return false;try{Base64.decode(salt,Base64.NO_WRAP);}catch(Exception e){return false;}p(c).edit().putBoolean("setup",true).putString("main",main).putString("salt",salt).putString("pin",pin).putBoolean("reset",true).putBoolean("safe",true).putBoolean("adb",true).putBoolean("install",true).putBoolean("uninstall",true).putBoolean("users",true).putBoolean("status",true).apply();return true;}
 }
