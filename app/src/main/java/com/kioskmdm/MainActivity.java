@@ -64,10 +64,10 @@ public class MainActivity extends Activity {
         apps = new Spinner(this);
         apps.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
         main.addView(apps);
-        Button access = UI.secondary(this, "הכנת לחיצה ארוכה וסיבוב מסך");
+        Button access = UI.secondary(this, "הכנת כפתור הגדרות וסיבוב מסך");
         access.setOnClickListener(v -> startActivity(new Intent(this, AccessSetupActivity.class)));
         root.addView(access);
-        root.addView(UI.note(this, "בדוק את קיצור החזור לפני הנעילה. אם הוא אינו זמין, תישאר כניסת מנהל מוגנת בקוד במסך הקיוסק."));
+        root.addView(UI.note(this, "הפעל את שירות הנגישות כדי להציג כפתור הגדרות קבוע בפינה השמאלית־תחתונה."));
         Button finish = UI.b(this, "שמירה והפעלת הקיוסק");
         finish.setOnClickListener(v -> finishSetup());
         root.addView(finish);
@@ -113,10 +113,6 @@ public class MainActivity extends Activity {
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
         ensureLockTask();
-        if (!BackKeyService.enabled(this) || !Prefs.opt(this, "back_hold_tested", false)) {
-            recovery("קיצור החזור עדיין לא הוגדר או לא זוהה במכשיר הזה. מנהל יכול להשלים את ההגדרה באמצעות הקוד.");
-            return;
-        }
         if (lastLaunch > 0 && SystemClock.uptimeMillis() - lastLaunch < 1200) {
             recovery("האפליקציה הראשית נסגרה. אפשר לפתוח אותה מחדש או להיכנס למנהל.");
             return;
