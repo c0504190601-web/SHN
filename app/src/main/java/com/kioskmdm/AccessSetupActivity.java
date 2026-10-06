@@ -15,8 +15,6 @@ public class AccessSetupActivity extends Activity {
         public void run() {
             if (status != null) status.setText(
                     "שירות לחיצה: " + (BackKeyService.enabled(AccessSetupActivity.this) ? "פעיל" : "כבוי") +
-                    "\nבדיקת 5 לחיצות: " + (Prefs.opt(AccessSetupActivity.this, "back_hold_tested", false)
-                            ? "הצליחה" : "טרם זוהו 5 לחיצות") +
                     "\nשינוי הגדרות תצוגה: " + (Settings.System.canWrite(AccessSetupActivity.this)
                             ? "מאושר" : "נדרש אישור"));
             handler.postDelayed(this, 500);
@@ -29,20 +27,17 @@ public class AccessSetupActivity extends Activity {
         if (Prefs.setup(this) && !Prefs.maintenance(this)) { finish(); return; }
         LinearLayout root = UI.root(this, "הכנת הגישה להגדרות");
         root.addView(UI.note(this, "הפעל את שירות Kiosk MDM ברשימת שירותי הנגישות. השירות מזהה מקשים בלבד ואינו קורא את תוכן המסך."));
-        Button accessibility = UI.b(this, "הפעלת שירות קיצור החזור");
+        Button accessibility = UI.b(this, "הפעלת שירות כפתור ההגדרות");
         accessibility.setOnClickListener(v -> open(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
         root.addView(accessibility);
         Button write = UI.secondary(this, "אישור שינוי סיבוב ובהירות");
         write.setOnClickListener(v -> open(new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                 Uri.parse("package:" + getPackageName()))));
         root.addView(write);
-        root.addView(UI.note(this, "לאחר ההפעלה: לחץ על חץ החזור 5 פעמים בתוך 3 שניות. אם המכשיר מעביר את המקשים לשירות, יופיע גלגל שיניים והבדיקה תסומן כהצלחה."));
-        root.addView(UI.note(this, "אם המכשיר אינו מעביר את מקש החזור לשירות הנגישות, השתמש בכניסת המנהל המוגנת בקוד."));
+        root.addView(UI.note(this, "לאחר הפעלת השירות יופיע כפתור ⚙ קבוע בפינה השמאלית־תחתונה. לחיצה עליו תפתח את הגדרות הקיוסק."));
+        root.addView(UI.note(this, "הכניסה לניהול נשארת מוגנת בקוד המנהל."));
         status = UI.note(this, "");
         root.addView(status);
-        Button retest = UI.secondary(this, "איפוס בדיקת לחיצה");
-        retest.setOnClickListener(v -> Prefs.setOpt(this, "back_hold_tested", false));
-        root.addView(retest);
         Button done = UI.b(this, "חזרה");
         done.setOnClickListener(v -> finish());
         root.addView(done);
@@ -56,14 +51,10 @@ public class AccessSetupActivity extends Activity {
     @Override protected void onResume() {
         super.onResume();
         if (isFinishing()) return;
-        BackKeyService.setTesting(true);
         handler.post(refresh);
     }
     @Override protected void onPause() {
         handler.removeCallbacks(refresh);
-        BackKeyService.setTesting(false);
         super.onPause();
     }
-    // Stay on the test screen while testing the Back shortcut. The visible button exits.
-    @Override public void onBackPressed() { UI.msg(this, "ליציאה מהבדיקה לחץ על כפתור חזרה במסך"); }
 }
