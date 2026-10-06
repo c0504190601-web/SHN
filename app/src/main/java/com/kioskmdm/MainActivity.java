@@ -15,6 +15,8 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private boolean opening;
     private long lastLaunch;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable returnToApp = this::launch;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -33,9 +35,11 @@ public class MainActivity extends Activity {
         setIntent(intent);
         // Never leave old setup controls behind a returning application.
         if (Prefs.setup(this)) lockedSurface();
+        else setup();
     }
 
     private void setup() {
+        packages.clear();
         root = UI.root(this, "ברוכים הבאים");
         root.addView(UI.note(this, Policy.owner(this) ? "הרשאת ניהול המכשיר פעילה"
                 : "לפני הפעלת הקיוסק יש להגדיר את האפליקציה כ־Device Owner"));
@@ -64,10 +68,10 @@ public class MainActivity extends Activity {
         apps = new Spinner(this);
         apps.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
         main.addView(apps);
-        Button access = UI.secondary(this, "הכנת כפתור הגדרות וסיבוב מסך");
+        Button access = UI.secondary(this, "הכנת וילון ההגדרות");
         access.setOnClickListener(v -> startActivity(new Intent(this, AccessSetupActivity.class)));
         root.addView(access);
-        root.addView(UI.note(this, "הפעל את שירות הנגישות כדי להציג כפתור הגדרות קבוע בפינה השמאלית־תחתונה."));
+        root.addView(UI.note(this, "הפעל את שירות וילון ההגדרות. לאחר מכן אפשר למשוך מהקצה העליון לפתיחת ההגדרות המהירות."));
         Button finish = UI.b(this, "שמירה והפעלת הקיוסק");
         finish.setOnClickListener(v -> finishSetup());
         root.addView(finish);
@@ -105,26 +109,36 @@ public class MainActivity extends Activity {
     }
 
     private void lockedSurface() {
-        root = UI.root(this, "סביבת העבודה מוגנת");
-        root.addView(UI.note(this, "פותח את האפליקציה הראשית…"));
+        android.widget.FrameLayout surface = new android.widget.FrameLayout(this);
+        surface.setBackgroundColor(UI.BACKGROUND);
+        ProgressBar progress = new ProgressBar(this);
+        android.widget.FrameLayout.LayoutParams p = new android.widget.FrameLayout.LayoutParams(
+                UI.dp(this, 28), UI.dp(this, 28), android.view.Gravity.CENTER);
+        surface.addView(progress, p);
+        setContentView(surface);
     }
 
     private void route() {
+        BackKeyService.refreshAccess();
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
         ensureLockTask();
-        if (lastLaunch > 0 && SystemClock.uptimeMillis() - lastLaunch < 1200) {
-            recovery("האפליקציה הראשית נסגרה. אפשר לפתוח אותה מחדש או להיכנס למנהל.");
-            return;
-        }
-        launch();
+        // A quick Back is an ordinary return, never a reason to open administrator UI.
+        handler.removeCallbacks(returnToApp);
+        long delay = Math.max(0, 250 - (SystemClock.uptimeMillis() - lastLaunch));
+        handler.postDelayed(returnToApp, delay);
+    }
+
+    @Override protected void onPause() {
+        handler.removeCallbacks(returnToApp);
+        super.onPause();
     }
 
     private void launch() {
         if (opening || Prefs.maintenance(this)) return;
         String pkg = Prefs.main(this);
         Intent intent = getPackageManager().getLaunchIntentForPackage(pkg);
-        if (intent == null) { recovery("האפליקציה הראשית אינה זמינה. כניסה לניהול דורשת את קוד המנהל."); return; }
+        if (intent == null) { recovery("האפליקציה אינה זמינה כרגע."); return; }
         lockedSurface();
         Policy.applyBlocked(this);
         try {
@@ -133,9 +147,10 @@ public class MainActivity extends Activity {
             lastLaunch = SystemClock.uptimeMillis();
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
             startActivity(intent);
+            overridePendingTransition(0, 0);
         } catch (RuntimeException exception) {
             opening = false;
-            recovery("לא ניתן לפתוח את האפליקציה הראשית. נדרשת בדיקת מנהל.");
+            recovery("לא ניתן לפתוח את האפליקציה כרגע.");
         }
     }
 
@@ -151,29 +166,28 @@ public class MainActivity extends Activity {
     }
 
     private void recovery(String message) {
-        root = UI.root(this, "המכשיר מוגן");
+        root = UI.root(this, "פתיחת האפליקציה");
         root.addView(UI.note(this, message));
-        Button launch = UI.b(this, "פתיחת האפליקציה הראשית");
-        launch.setOnClickListener(v -> launch());
-        root.addView(launch);
-        Button admin = UI.secondary(this, "כניסת מנהל עם קוד");
-        admin.setOnClickListener(v -> startActivity(new Intent(this, AdminActivity.class)));
-        root.addView(admin);
+        Button retry = UI.b(this, "נסה שוב");
+        retry.setOnClickListener(v -> { opening = false; launch(); });
+        root.addView(retry);
+        Button settings = UI.secondary(this, "הגדרות");
+        settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        root.addView(settings);
     }
 
     private void maintenance() {
-        root = UI.root(this, "מצב תחזוקה פעיל");
-        root.addView(UI.note(this, "אפשר לסיים את התחזוקה ולחזור לסביבת העבודה בכל רגע."));
-        Button end = UI.b(this, "סיום תחזוקה וחזרה לקיוסק");
+        root = UI.root(this, "תחזוקה");
+        Button end = UI.b(this, "סיום תחזוקה וחזרה לאפליקציה");
         end.setOnClickListener(v -> { Policy.maintenance(this, false); lastLaunch = 0; route(); });
         root.addView(end);
-        Button admin = UI.secondary(this, "כניסת מנהל");
-        admin.setOnClickListener(v -> startActivity(new Intent(this, AdminActivity.class)));
-        root.addView(admin);
+        Button settings = UI.secondary(this, "הגדרות");
+        settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        root.addView(settings);
     }
 
     @Override public void onBackPressed() {
-        if (Prefs.setup(this)) { if (!Prefs.maintenance(this)) launch(); }
+        if (Prefs.setup(this)) { if (!Prefs.maintenance(this)) { opening = false; route(); } }
         else super.onBackPressed();
     }
 }

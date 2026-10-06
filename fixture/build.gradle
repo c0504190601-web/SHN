@@ -1,0 +1,12 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.kioskmdm.fixture'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.kioskmdm.fixture'
+        minSdk 26
+        targetSdk 27
+        versionCode 1
+        versionName '1.0'
+    }
+}

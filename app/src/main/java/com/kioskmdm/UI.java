@@ -12,8 +12,8 @@ import android.view.View;
 import android.widget.*;
 
 public final class UI {
-    static final int INK = 0xff17253c, MUTED = 0xff65748b, ACCENT = 0xff3568e8;
-    static final int BACKGROUND = 0xfff3f6fc;
+    static final int INK = 0xff182336, MUTED = 0xff788497, ACCENT = 0xff4263df;
+    static final int BACKGROUND = 0xfff5f6fa;
 
     static int dp(Context c, int n) {
         return (int) (n * c.getResources().getDisplayMetrics().density + .5f);
@@ -43,11 +43,7 @@ public final class UI {
         LinearLayout root = new LinearLayout(a);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
-        root.setPadding(dp(a, 22), dp(a, 24), dp(a, 22), dp(a, 32));
-        TextView brand = note(a, "KIOSK  /  סביבת עבודה מוגנת");
-        brand.setTextColor(ACCENT);
-        brand.setTextSize(12);
-        root.addView(brand);
+        root.setPadding(dp(a, 22), dp(a, 32), dp(a, 22), dp(a, 32));
         TextView heading = note(a, title);
         heading.setTextColor(INK);
         heading.setTextSize(30);

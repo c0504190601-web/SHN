@@ -24,7 +24,7 @@ public class AdminActivity extends Activity {
 
     private void login() {
         root = UI.root(this, "כניסת מנהל");
-        root.addView(UI.note(this, "ניהול המכשיר מוגן בקוד האישי שלך"));
+        root.addView(UI.note(this, "הזן קוד כדי לפתוח את אפשרויות המנהל"));
         EditText input = password("קוד מנהל");
         root.addView(input);
         Button login = UI.b(this, "כניסה מאובטחת");
@@ -50,12 +50,12 @@ public class AdminActivity extends Activity {
         if (!authenticated) return;
         submenu = false;
         root = UI.root(this, "ניהול המכשיר");
-        root.addView(UI.note(this, Prefs.maintenance(this) ? "מצב תחזוקה פעיל" : "הגנות הקיוסק פעילות"));
+        root.addView(UI.note(this, Prefs.maintenance(this) ? "מצב תחזוקה פעיל" : "אפשרויות מנהל"));
         button("הגנות והגבלות", this::manage);
         button("אפליקציות ואפליקציה ראשית", this::apps);
         button("שינוי קוד מנהל", this::changePin);
         button("הסרת הניהול מהמכשיר", this::removeManagement);
-        button("כניסה לתחזוקה והגדרת קיצור החזור", () -> {
+        button("תחזוקה והרשאות וילון ההגדרות", () -> {
             enterMaintenance();
             startActivity(new Intent(this, AccessSetupActivity.class));
         });
