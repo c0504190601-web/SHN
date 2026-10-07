@@ -1,4 +1,4 @@
-package com.kioskmdm;
+package com.kdroid.filter;
 import android.content.*;import android.util.Base64;import java.security.*;import java.nio.charset.StandardCharsets;import java.util.*;import java.io.*;
 public final class Prefs{
  static final String ROM_CFG="/system/etc/kioskmdm.conf";
