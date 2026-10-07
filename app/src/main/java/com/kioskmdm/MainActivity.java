@@ -1,4 +1,4 @@
-package com.kioskmdm;
+package com.kdroid.filter;
 import android.app.*;
 import android.content.*;
 import android.content.pm.*;
