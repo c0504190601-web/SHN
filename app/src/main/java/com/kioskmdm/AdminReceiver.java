@@ -1,1 +1,1 @@
-package com.kioskmdm; public class AdminReceiver extends android.app.admin.DeviceAdminReceiver {}
+package com.kdroid.filter; public class AdminReceiver extends android.app.admin.DeviceAdminReceiver {}
