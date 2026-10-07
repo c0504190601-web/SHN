@@ -1,4 +1,4 @@
-package com.kioskmdm;
+package com.kdroid.filter;
 import android.app.*;import android.content.*;import android.media.AudioManager;import android.os.*;import android.provider.Settings;import android.widget.*;
 public class SettingsActivity extends Activity {
  LinearLayout l; protected void onCreate(Bundle b){super.onCreate(b);show();}
