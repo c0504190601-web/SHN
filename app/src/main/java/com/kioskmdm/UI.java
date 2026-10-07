@@ -1,4 +1,4 @@
-package com.kioskmdm;
+package com.kdroid.filter;
 import android.app.*;import android.content.*;import android.graphics.Color;import android.graphics.drawable.GradientDrawable;import android.view.*;import android.widget.*;
 public final class UI{
  static int dp(Context c,int n){return(int)(n*c.getResources().getDisplayMetrics().density+.5f);}
