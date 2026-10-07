@@ -1,10 +1,10 @@
 plugins { id 'com.android.application' }
 
 android {
-    namespace 'com.kioskmdm'
+    namespace 'com.kdroid.filter'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.kioskmdm'
+        applicationId 'com.kdroid.filter'
         minSdk 26
         targetSdk 35
         versionCode 1
