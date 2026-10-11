@@ -54,6 +54,8 @@ public class AdminActivity extends Activity {
         button("הגנות והגבלות", this::manage);
         button("אפליקציות ואפליקציה ראשית", this::apps);
         button("שינוי קוד מנהל", this::changePin);
+        button("הגדרות Android (מנהל בלבד)", () -> openAndroidSettings(android.provider.Settings.ACTION_SETTINGS));
+        button("הגדרות SIM ונתונים סלולריים", () -> openAndroidSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
         button("תחזוקה והרשאות וילון ההגדרות", () -> {
             enterMaintenance();
@@ -70,6 +72,21 @@ public class AdminActivity extends Activity {
         button.setOnClickListener(v -> action.run()); root.addView(button);
     }
 
+    private void openAndroidSettings(String action) {
+        if(!authenticated)return;
+        enterMaintenance();
+        try { startActivityForResult(new Intent(action), 271); }
+        catch(RuntimeException exception) { UI.msg(this,"לא ניתן לפתוח את הגדרות Android במכשיר זה"); }
+    }
+    @Override protected void onActivityResult(int request,int result,Intent data) {
+        super.onActivityResult(request,result,data);
+        if(request==271 && Policy.owner(this)) {
+            Policy.maintenance(this,false);
+            authenticated=false;
+            startActivity(new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP));
+            finish();
+        }
+    }
     private void enterMaintenance() {
         Policy.maintenance(this, true);
         try { stopLockTask(); } catch (RuntimeException ignored) { }
