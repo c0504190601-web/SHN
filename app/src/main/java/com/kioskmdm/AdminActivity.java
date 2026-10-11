@@ -54,6 +54,8 @@ public class AdminActivity extends Activity {
         button("הגנות והגבלות", this::manage);
         button("אפליקציות ואפליקציה ראשית", this::apps);
         button("שינוי קוד מנהל", this::changePin);
+        button("הגדרות המכשיר (מנהל)", () -> openSystemSettings(android.provider.Settings.ACTION_SETTINGS));
+        button("הגדרות SIM ונתונים סלולריים", () -> openSystemSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
         button("תחזוקה והרשאות וילון ההגדרות", () -> {
             enterMaintenance();
@@ -70,6 +72,11 @@ public class AdminActivity extends Activity {
         button.setOnClickListener(v -> action.run()); root.addView(button);
     }
 
+    private void openSystemSettings(String action) {
+        enterMaintenance();
+        try { startActivity(new Intent(action)); }
+        catch (RuntimeException e) { UI.msg(this,"הגדרות המערכת אינן זמינות"); }
+    }
     private void enterMaintenance() {
         Policy.maintenance(this, true);
         try { stopLockTask(); } catch (RuntimeException ignored) { }
