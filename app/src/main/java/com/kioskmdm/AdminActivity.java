@@ -57,6 +57,7 @@ public class AdminActivity extends Activity {
         button("הגדרות Android (מנהל בלבד)", () -> openAndroidSettings(android.provider.Settings.ACTION_SETTINGS));
         button("הגדרות SIM ונתונים סלולריים", () -> openAndroidSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
+        button(Prefs.opt(this,"original_shade",false) ? "שחזור הצמדה ונעילה חזקה" : "ניסוי: וילון Android מקורי ללא הצמדה", this::toggleOriginalShade);
         button("ניסוי: פתיחת הווילון החלופי", () -> startActivity(new Intent(this,CameraShadeActivity.class)));
         button("הפעל קיצור לחיצה כפולה לווילון", () -> {
             boolean ok=Policy.setCameraShortcut(this,true);
@@ -76,6 +77,34 @@ public class AdminActivity extends Activity {
         close.setOnClickListener(v -> finish()); root.addView(close);
     }
 
+    private void toggleOriginalShade() {
+        if(!authenticated || !Policy.owner(this))return;
+        if(Prefs.opt(this,"original_shade",false)) {
+            Prefs.setOpt(this,"original_shade",false);
+            Policy.apply(this,Prefs.main(this));
+            UI.msg(this,"מצב הנעילה החזק הוחזר");
+            lock();
+            return;
+        }
+        boolean installed;
+        try {getPackageManager().getPackageInfo("com.kioskmdm.shadehook",0);installed=true;}
+        catch(PackageManager.NameNotFoundException error){installed=false;}
+        if(!installed) {
+            UI.msg(this,"התקן את מודול LSPosed לפני ביטול הצמדת המסך");
+            return;
+        }
+        new AlertDialog.Builder(this)
+            .setTitle("ניסוי ללא הצמדה")
+            .setMessage("חובה להפעיל קודם את מודול LSPosed ב-SystemUI ולהפעיל את המכשיר מחדש. גם כך אין הבטחה לחסימת כל דרכי היציאה מהקיוסק. בדוק זאת לפני שימוש שוטף.")
+            .setNegativeButton("ביטול",null)
+            .setPositiveButton("הפעל ניסוי",(dialog,which)->{
+                Prefs.setOpt(this,"camera_shortcut",false);
+                Prefs.setOpt(this,"original_shade",true);
+                Policy.apply(this,Prefs.main(this));
+                UI.msg(this,"מצב וילון Android הופעל");
+                lock();
+            }).show();
+    }
     private void button(String title, Runnable action) {
         Button button = UI.b(this, title);
         button.setOnClickListener(v -> action.run()); root.addView(button);

@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, 'codex/kiosk-v23-back-design-rotation', 'feature/kiosk46-unified-modern-shade', 'feature/kiosk70-back-root-bootfix', 'feature/kiosk71-magisk-autostart', 'feature/a17mini-double-power-shade' ]
+    branches: [ main, 'codex/kiosk-v23-back-design-rotation', 'feature/kiosk46-unified-modern-shade', 'feature/kiosk70-back-root-bootfix', 'feature/kiosk71-magisk-autostart', 'feature/a17mini-double-power-shade', 'feature/original-systemui-no-lock-pilot' ]
 
 jobs:
   build:
@@ -37,7 +37,7 @@ jobs:
           fi
 
       - name: Build debug APK
-        run: gradle --no-daemon assembleDebug lintDebug
+        run: gradle --no-daemon :app:assembleDebug :app:lintDebug :shadehook:assembleDebug
 
       - name: Verify APK uses the persistent signing key
         run: |
@@ -48,6 +48,13 @@ jobs:
           cat /tmp/kiosk-apk-signature.txt
           actual_fingerprint=$(sed -n 's/^.*certificate SHA-256 digest: //p' /tmp/kiosk-apk-signature.txt | sort -u | tr -d '[:space:]')
           test "$actual_fingerprint" = "$expected_fingerprint"
+
+      - name: Upload SystemUI Hook APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kiosk-SystemUI-Hook-APK
+          path: shadehook/build/outputs/apk/debug/shadehook-debug.apk
+          if-no-files-found: error
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

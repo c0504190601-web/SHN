@@ -122,7 +122,9 @@ public class MainActivity extends Activity {
         BackKeyService.refreshAccess();
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
-        ensureLockTask();
+        if(Prefs.opt(this,"original_shade",false)) {
+            try {stopLockTask();} catch(RuntimeException ignored) {}
+        } else ensureLockTask();
         // A quick Back is an ordinary return, never a reason to open administrator UI.
         handler.removeCallbacks(returnToApp);
         long delay = Math.max(0, 250 - (SystemClock.uptimeMillis() - lastLaunch));
@@ -155,7 +157,7 @@ public class MainActivity extends Activity {
     }
 
     private void ensureLockTask() {
-        if (Prefs.maintenance(this)) return;
+        if (Prefs.maintenance(this) || Prefs.opt(this,"original_shade",false)) return;
         try {
             android.app.ActivityManager manager = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
             if (Policy.owner(this) && Policy.d(this).isLockTaskPermitted(getPackageName())
