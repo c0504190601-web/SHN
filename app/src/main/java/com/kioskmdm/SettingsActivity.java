@@ -31,6 +31,7 @@ public class SettingsActivity extends Activity {
             Button permission=UI.secondary(this,"אישור Bluetooth");
             permission.setOnClickListener(v->requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT},1));connections.addView(permission);
         }
+        systemRow(connections,"SIM ונתונים סלולריים","צפייה בהגדרות חיבור הנתונים",ControlIcon.WIFI,Settings.ACTION_DATA_ROAMING_SETTINGS);
         LinearLayout display=UI.card(this,root,"תצוגה");
         rotation=UI.sw(this,"סיבוב מסך אוטומטי",false);
         rotation.setContentDescription("סיבוב מסך אוטומטי");
