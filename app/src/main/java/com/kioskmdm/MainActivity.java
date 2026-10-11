@@ -68,10 +68,10 @@ public class MainActivity extends Activity {
         apps = new Spinner(this);
         apps.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names));
         main.addView(apps);
-        Button access = UI.secondary(this, "הכנת וילון ההגדרות");
+        Button access = UI.secondary(this, "הגדרת אפליקציית הווילון");
         access.setOnClickListener(v -> startActivity(new Intent(this, AccessSetupActivity.class)));
         root.addView(access);
-        root.addView(UI.note(this, "הפעל את שירות וילון ההגדרות. לאחר מכן אפשר למשוך מהקצה העליון לפתיחת ההגדרות המהירות."));
+        root.addView(UI.note(this, "התקן תחילה את Kiosk Shade והפעל את שירות הנגישות שלה."));
         Button finish = UI.b(this, "שמירה והפעלת הקיוסק");
         finish.setOnClickListener(v -> finishSetup());
         root.addView(finish);
@@ -119,7 +119,7 @@ public class MainActivity extends Activity {
     }
 
     private void route() {
-        BackKeyService.refreshAccess();
+        
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
         ensureLockTask();
