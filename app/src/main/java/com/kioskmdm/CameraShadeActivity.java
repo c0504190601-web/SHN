@@ -5,6 +5,9 @@ import android.app.KeyguardManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.media.AudioManager;
+import android.provider.Settings;
+import android.widget.SeekBar;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -31,7 +34,7 @@ public class CameraShadeActivity extends Activity {
         if (guard!=null && guard.isKeyguardLocked()) { finish(); return; }
 
         LinearLayout root=UI.root(this,"הגדרות מהירות");
-        root.addView(UI.note(this,"וילון חלופי שאינו תלוי בשירות הנגישות. ניסיון פתיחה בלחיצה כפולה על כפתור ההדלקה."));
+        addSliders(root);
 
         LinearLayout controls=UI.card(this,root,"חיבורים ותצוגה");
         LinearLayout first=row();
@@ -50,6 +53,48 @@ public class CameraShadeActivity extends Activity {
         Button back=UI.secondary(this,"חזרה לאפליקציה");
         back.setOnClickListener(v->returnToKiosk());root.addView(back);
         refresh();
+    }
+
+    private void addSliders(LinearLayout root) {
+        LinearLayout panel=UI.card(this,root,"בהירות ועוצמת קול");
+        TextView brightnessLabel=UI.note(this,"בהירות");
+        panel.addView(brightnessLabel);
+        SeekBar brightness=new SeekBar(this);
+        brightness.setMax(254);
+        brightness.setContentDescription("בהירות");
+        int current=Settings.System.getInt(getContentResolver(),Settings.System.SCREEN_BRIGHTNESS,128);
+        brightness.setProgress(Math.max(0,current-1));
+        brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar bar,int position,boolean fromUser){
+                if(!fromUser)return;
+                if(!Settings.System.canWrite(CameraShadeActivity.this)){
+                    UI.msg(CameraShadeActivity.this,"נדרשת הרשאת שינוי הגדרות מערכת");
+                    return;
+                }
+                try{
+                    Settings.System.putInt(getContentResolver(),Settings.System.SCREEN_BRIGHTNESS_MODE,Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
+                    Settings.System.putInt(getContentResolver(),Settings.System.SCREEN_BRIGHTNESS,position+1);
+                }catch(RuntimeException e){UI.msg(CameraShadeActivity.this,"אי אפשר לשנות בהירות");}
+            }
+            public void onStartTrackingTouch(SeekBar bar){}
+            public void onStopTrackingTouch(SeekBar bar){}
+        });
+        panel.addView(brightness);
+        panel.addView(UI.note(this,"עוצמת קול"));
+        AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
+        SeekBar volume=new SeekBar(this);
+        volume.setContentDescription("עוצמת קול במדיה");
+        volume.setMax(audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+        volume.setProgress(audio.getStreamVolume(AudioManager.STREAM_MUSIC));
+        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            public void onProgressChanged(SeekBar bar,int position,boolean fromUser){
+                if(fromUser)try{audio.setStreamVolume(AudioManager.STREAM_MUSIC,position,0);}
+                catch(RuntimeException ignored){}
+            }
+            public void onStartTrackingTouch(SeekBar bar){}
+            public void onStopTrackingTouch(SeekBar bar){}
+        });
+        panel.addView(volume);
     }
 
     private LinearLayout row() {
