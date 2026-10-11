@@ -1,13 +1,17 @@
 package com.kioskmdm.shadehook;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.SystemClock;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import de.robv.android.xposed.AndroidAppHelper;
@@ -66,11 +70,28 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
   else if(r==double.class)p.setResult(0d);
   else p.setResult(null);
  }
+ private static void collapseShade(Context c){
+  if(c==null)return;
+  try {
+   Object bar=c.getSystemService("statusbar");
+   if(bar==null)return;
+   Method collapse=bar.getClass().getMethod("collapsePanels");
+   collapse.invoke(bar);
+  }catch(Throwable t){XposedBridge.log("Kiosk shade collapse: "+t);}
+ }
  private static void launch(Context c){
-  Intent i=new Intent();
-  i.setClassName("com.kioskmdm","com.kioskmdm.ShadeEntryActivity");
-  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-  c.startActivity(i);
+  if(c==null)return;
+  // Dismiss the SystemUI window first: otherwise our Settings task remains behind it.
+  collapseShade(c);
+  new Handler(Looper.getMainLooper()).postDelayed(()->{
+   try {
+    Intent i=new Intent();
+    i.setClassName("com.kioskmdm","com.kioskmdm.ShadeEntryActivity");
+    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    c.startActivity(i);
+    collapseShade(c);
+   }catch(Throwable t){XposedBridge.log("Kiosk shade launch: "+t);}
+  },180);
  }
  private static void gear(ClassLoader loader){
   for(String type:new String[]{"com.android.systemui.qs.QSFooterImpl","com.android.systemui.qs.QSFooter"}){
@@ -94,21 +115,71 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
    });
   }
  }
- private static boolean forbidden(Object o){
-  if(!(o instanceof String))return false;
-  String v=((String)o).trim().toLowerCase(Locale.ROOT);
-  return v.equals("location")||v.equals("hotspot")||v.equals("wifi_hotspot")||v.equals("wifiap")||v.equals("tether");
+ private static boolean forbidden(Object value) {
+  if(!(value instanceof String))return false;
+  String s=((String)value).toLowerCase(Locale.ROOT).trim();
+  return s.equals("location")||s.contains("locationtile")||s.equals("hotspot")
+   ||s.contains("hotspot")||s.contains("tether")||s.equals("wifiap")||s.equals("wifi_hotspot");
+ }
+ private static Object specOf(Object tile){
+  if(tile instanceof String)return tile;
+  if(tile==null)return null;
+  try{
+   Method method=tile.getClass().getMethod("getTileSpec");
+   return method.invoke(tile);
+  }catch(Throwable ignored){return null;}
+ }
+ private static Collection<?> keepTiles(Collection<?> tiles){
+  ArrayList<Object> safe=new ArrayList<>();
+  for(Object tile:tiles){
+   Object spec=specOf(tile);
+   if(!forbidden(spec))safe.add(tile);
+  }
+  return safe;
+ }
+ private static String safeTileNames(String names){
+  if(names==null)return null;
+  StringBuilder safe=new StringBuilder();
+  for(String part:names.split(",")){
+   String item=part.trim();
+   if(!forbidden(item)&&!item.isEmpty()){
+    if(safe.length()>0)safe.append(',');
+    safe.append(item);
+   }
+  }
+  return safe.toString();
  }
  private static void tiles(ClassLoader loader){
-  hook("com.android.systemui.qs.QSTileHost",loader,"loadTileSpecs",new XC_MethodHook(){
+  final String host="com.android.systemui.qs.QSTileHost";
+  // Filter the persisted/default list when the host loads it.
+  hook(host,loader,"loadTileSpecs",new XC_MethodHook(){
    @Override protected void afterHookedMethod(MethodHookParam p){
-    if(!active()||!(p.getResult() instanceof List))return;
-    List<?> spec=(List<?>)p.getResult();
-    ArrayList<Object> keep=new ArrayList<>();
-    for(Object item:spec)if(!forbidden(item))keep.add(item);
-    if(keep.size()!=spec.size())p.setResult(keep);
+    if(active()&&p.getResult() instanceof Collection)
+     p.setResult(new ArrayList<>(keepTiles((Collection<?>)p.getResult())));
    }
   });
+  // MediaTek builds can use already-instantiated tiles; filter those as well.
+  hook(host,loader,"getTiles",new XC_MethodHook(){
+   @Override protected void afterHookedMethod(MethodHookParam p){
+    if(active()&&p.getResult() instanceof Collection)
+     p.setResult(new ArrayList<>(keepTiles((Collection<?>)p.getResult())));
+   }
+  });
+  hook(host,loader,"onTuningChanged",new XC_MethodHook(){
+   @Override protected void beforeHookedMethod(MethodHookParam p){
+    if(!active()||p.args.length<2||!(p.args[0] instanceof String)||!(p.args[1] instanceof String))return;
+    if("sysui_qs_tiles".equals(p.args[0]))p.args[1]=safeTileNames((String)p.args[1]);
+   }
+  });
+  // Guard both the fully expanded panel and the compact top row.
+  for(String panel:new String[]{"com.android.systemui.qs.QSPanel","com.android.systemui.qs.QuickQSPanel"}){
+   hook(panel,loader,"setTiles",new XC_MethodHook(){
+    @Override protected void beforeHookedMethod(MethodHookParam p){
+     if(active()&&p.args.length>0&&p.args[0] instanceof Collection)
+      p.args[0]=keepTiles((Collection<?>)p.args[0]);
+    }
+   });
+  }
   for(String method:new String[]{"show","showImmediately"}){
    hook("com.android.systemui.qs.customize.QSCustomizer",loader,method,new XC_MethodHook(){
     @Override protected void beforeHookedMethod(MethodHookParam p){if(active())stop(p);}
@@ -141,12 +212,40 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
   });
  }
  private static void recents(ClassLoader loader){
-  for(String type:new String[]{"com.android.systemui.recents.Recents","com.android.systemui.recents.RecentsImpl","com.android.systemui.statusbar.phone.StatusBar"}){
-   for(String method:new String[]{"showRecentApps","toggleRecentApps","preloadRecentApps","showRecents","toggleRecents"}){
+  // Block all paths from SystemUI navigation, command dispatch and MTK recents.
+  for(String type:new String[]{"com.android.systemui.statusbar.CommandQueue",
+    "com.android.systemui.recents.Recents","com.android.systemui.recents.RecentsImpl",
+    "com.android.systemui.statusbar.phone.StatusBar"}){
+   for(String method:new String[]{"showRecentApps","toggleRecentApps","preloadRecentApps",
+     "showRecents","toggleRecents","preloadRecents","startRecentsActivity",
+     "showNextTask","showNextAffiliatedTask","showPrevAffiliatedTask"}){
     hook(type,loader,method,new XC_MethodHook(){
      @Override protected void beforeHookedMethod(MethodHookParam p){if(active())stop(p);}
     });
    }
+  }
+  // Hide the recent-apps navigation button as well as blocking its action.
+  for(String method:new String[]{"onFinishInflate","reorient","setDisabledFlags",
+    "updateCurrentView","updateRotatedViews","onConfigurationChanged"}){
+   hook("com.android.systemui.statusbar.phone.NavigationBarView",loader,method,new XC_MethodHook(){
+    @Override protected void afterHookedMethod(MethodHookParam p){
+     if(!active())return;
+     try{
+      Object nav=p.thisObject;
+      Method getter=nav.getClass().getMethod("getRecentsButton");
+      Object button=getter.invoke(nav);
+      if(button!=null)button.getClass().getMethod("setVisibility",int.class).invoke(button,View.GONE);
+     }catch(Throwable t){XposedBridge.log("Kiosk recents button: "+t);}
+    }
+   });
+  }
+  // Fallback for direct activity launches that bypass the usual recents APIs.
+  for(String method:new String[]{"onStart","onNewIntent"}){
+   hook("com.android.systemui.recents.RecentsActivity",loader,method,new XC_MethodHook(){
+    @Override protected void afterHookedMethod(MethodHookParam p){
+     if(active()&&p.thisObject instanceof Activity)((Activity)p.thisObject).finish();
+    }
+   });
   }
  }
  private static void escapes(ClassLoader loader){
