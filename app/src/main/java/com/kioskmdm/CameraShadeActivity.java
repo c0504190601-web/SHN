@@ -22,7 +22,6 @@ import android.widget.TextView;
 public class CameraShadeActivity extends Activity {
     private final Handler handler=new Handler(Looper.getMainLooper());
     private Tile wifi,bluetooth,rotation,mobile;
-    private TextView shortcutStatus;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -48,18 +47,8 @@ public class CameraShadeActivity extends Activity {
         Button settings=UI.b(this,"פתיחת כל ההגדרות");
         settings.setOnClickListener(v->openSettings());root.addView(settings);
 
-        LinearLayout shortcut=UI.card(this,root,"לחיצה כפולה על כפתור ההדלקה");
-        shortcutStatus=UI.note(this,"");shortcut.addView(shortcutStatus);
-        shortcut.addView(UI.note(this,"קיצור המצלמה יופנה לווילון רק אם הקושחה משתמשת בפעולת מצלמה רגילה. בקושחות שפותחות את המצלמה ישירות השינוי לא ישפיע."));
-        Button enable=UI.secondary(this,"הפעל קיצור לווילון");
-        enable.setOnClickListener(v->toggleCameraShortcut(true));
-        shortcut.addView(enable);
-        Button disable=UI.secondary(this,"בטל והחזר את קיצור המצלמה");
-        disable.setOnClickListener(v->toggleCameraShortcut(false));
-        shortcut.addView(disable);
         Button back=UI.secondary(this,"חזרה לאפליקציה");
         back.setOnClickListener(v->returnToKiosk());root.addView(back);
-        updateShortcutStatus();
         refresh();
     }
 
@@ -73,18 +62,6 @@ public class CameraShadeActivity extends Activity {
         LinearLayout.LayoutParams layout=new LinearLayout.LayoutParams(0,UI.dp(this,125),1);
         layout.setMargins(UI.dp(this,3),0,UI.dp(this,3),0);
         row.addView(tile,layout);
-    }
-    private void toggleCameraShortcut(boolean enabled) {
-        if (Policy.setCameraShortcut(this,enabled)) {
-            UI.msg(this,enabled?"הקיצור הופעל. נסה שתי לחיצות על כפתור ההדלקה":"קיצור המצלמה שוחזר");
-        } else {
-            UI.msg(this,"לא הצלחנו לשנות את קיצור המצלמה במכשיר הזה");
-        }
-        updateShortcutStatus();
-    }
-    private void updateShortcutStatus() {
-        if(shortcutStatus!=null)shortcutStatus.setText(
-            "הפניית הקיצור: "+(Prefs.opt(this,"camera_shortcut",false)?"מוגדרת לווילון":"כבויה"));
     }
     private void refresh() {
         if(wifi==null)return;
@@ -107,7 +84,7 @@ public class CameraShadeActivity extends Activity {
         } catch(RuntimeException ignored) { }
         finish();
     }
-    @Override protected void onResume() {super.onResume();refresh();updateShortcutStatus();}
+    @Override protected void onResume() {super.onResume();refresh();}
     @Override protected void onDestroy() { handler.removeCallbacksAndMessages(null);super.onDestroy(); }
     @Override public void onBackPressed(){returnToKiosk();}
 
