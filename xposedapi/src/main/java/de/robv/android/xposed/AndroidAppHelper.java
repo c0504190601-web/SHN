@@ -1,2 +1,5 @@
 package de.robv.android.xposed;
-public final class AndroidAppHelper {public static Object currentApplication(){return null;}}
+import android.app.Application;
+public final class AndroidAppHelper {
+ public static Application currentApplication(){return null;}
+}
