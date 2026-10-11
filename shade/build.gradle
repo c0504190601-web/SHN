@@ -2,5 +2,6 @@ plugins { id 'com.android.application' }
 android {
  namespace 'com.kioskmdm.shade'
  compileSdk 35
+ lint { disable 'ExpiredTargetSdkVersion' }
  defaultConfig { applicationId 'com.kioskmdm.shade'; minSdk 26; targetSdk 27; versionCode 1; versionName '1.0' }
 }
