@@ -77,7 +77,7 @@ public class BackKeyService extends AccessibilityService {
     private boolean shouldShow() {
         PowerManager power=(PowerManager)getSystemService(POWER_SERVICE);
         KeyguardManager keyguard=(KeyguardManager)getSystemService(KEYGUARD_SERVICE);
-        return !Prefs.opt(this,"original_shade",false) && (Prefs.setup(this)||preview) && power.isInteractive() && !keyguard.isKeyguardLocked();
+        return !Prefs.opt(this,"original_shade",false) && !Prefs.opt(this,"power_shade",false) && (Prefs.setup(this)||preview) && power.isInteractive() && !keyguard.isKeyguardLocked();
     }
     private void reconcile() {
         if(windows==null)return;
