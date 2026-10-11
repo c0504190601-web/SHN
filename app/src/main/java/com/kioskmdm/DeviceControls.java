@@ -7,6 +7,8 @@ import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.provider.Settings;
 
@@ -69,6 +71,13 @@ final class DeviceControls {
             if (adapter == null || !(state == ON ? adapter.disable() : adapter.enable()))
                 UI.msg(c, "לא ניתן לשנות את מצב ה־Bluetooth");
         } catch (RuntimeException exception) { UI.msg(c, "אין אפשרות לשנות Bluetooth במכשיר הזה"); }
+    }
+    static boolean cellularConnected(Context c) {
+        try {
+            ConnectivityManager manager=(ConnectivityManager)c.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo mobile=manager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
+            return mobile!=null && mobile.isConnected();
+        } catch(RuntimeException ignored) { return false; }
     }
     static boolean setRotation(Context c, boolean on) {
         if (!Settings.System.canWrite(c)) { UI.msg(c, "יש לאשר שינוי הגדרות תצוגה דרך הגדרות המנהל"); return false; }
