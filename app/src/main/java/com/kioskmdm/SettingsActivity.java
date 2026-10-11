@@ -79,10 +79,6 @@ public class SettingsActivity extends Activity {
     }
     private void systemRow(LinearLayout parent,String title,String caption,int icon,String action){
         actionRow(parent,title,caption,icon,()->{
-            if(Prefs.opt(this,"original_shade",false) && !Prefs.maintenance(this)) {
-                UI.msg(this,"הגדרות מערכת זמינות רק במצב תחזוקה של המנהל");
-                return;
-            }
             try{startActivity(new Intent(action));}catch(RuntimeException e){UI.msg(this,"האפשרות אינה זמינה כרגע");}
         });
     }
