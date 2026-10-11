@@ -31,6 +31,7 @@ public class SettingsActivity extends Activity {
             Button permission=UI.secondary(this,"אישור Bluetooth");
             permission.setOnClickListener(v->requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT},1));connections.addView(permission);
         }
+        actionRow(connections,"SIM ונתונים סלולריים","כניסה דרך מנהל המכשיר",ControlIcon.WIFI, ()->startActivity(new Intent(this,AdminActivity.class)));
         LinearLayout display=UI.card(this,root,"תצוגה");
         rotation=UI.sw(this,"סיבוב מסך אוטומטי",false);
         rotation.setContentDescription("סיבוב מסך אוטומטי");
@@ -96,7 +97,7 @@ public class SettingsActivity extends Activity {
         TextView chevron=UI.note(this,"‹");chevron.setTextSize(26);chevron.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);row.addView(chevron);
         parent.addView(row,new LinearLayout.LayoutParams(-1,-2));
     }
-    @Override protected void onResume(){super.onResume();getContentResolver().registerContentObserver(Settings.System.CONTENT_URI,true,observer);BackKeyService.refreshAccess();refresh();}
+    @Override protected void onResume(){super.onResume();getContentResolver().registerContentObserver(Settings.System.CONTENT_URI,true,observer);refresh();}
     @Override protected void onPause(){getContentResolver().unregisterContentObserver(observer);super.onPause();}
     private void refresh(){
         if(rotation==null)return;
