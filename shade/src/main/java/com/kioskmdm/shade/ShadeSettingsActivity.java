@@ -3,7 +3,7 @@ import android.app.Activity;import android.content.Intent;import android.os.Bund
 public class ShadeSettingsActivity extends Activity{
  LinearLayout panel;
  void add(String name,String action){Button b=new Button(this);b.setText(name);b.setOnClickListener(v->{try{startActivity(new Intent(action));}catch(Exception e){Toast.makeText(this,"האפשרות אינה זמינה",Toast.LENGTH_SHORT).show();}});panel.addView(b);}
- public void onCreate(Bundle state){super.onCreate(state);panel=new LinearLayout(this);panel.setOrientation(1);panel.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);panel.setPadding(18,30,18,18);setContentView(panel);
+ public void onCreate(Bundle state){super.onCreate(state);panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);panel.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);panel.setPadding(18,30,18,18);setContentView(panel);
  TextView title=new TextView(this);title.setText("הגדרות הווילון");title.setTextSize(24);panel.addView(title);
  add("רשת Wi-Fi",Settings.ACTION_WIFI_SETTINGS);
  add("Bluetooth",Settings.ACTION_BLUETOOTH_SETTINGS);
