@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+android {
+ namespace 'com.kioskmdm.shadehook'
+ compileSdk 35
+ defaultConfig {
+  applicationId 'com.kioskmdm.shadehook'
+  minSdk 27
+  targetSdk 27
+  versionCode 1
+  versionName '0.1-experimental'
+ }
+}
+dependencies { compileOnly project(':xposedapi') }
