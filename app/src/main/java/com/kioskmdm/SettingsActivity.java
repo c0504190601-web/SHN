@@ -75,7 +75,7 @@ public class SettingsActivity extends Activity {
         systemRow(general,"תאריך ושעה","אזור זמן וכיוון השעון",ControlIcon.CLOCK,Settings.ACTION_DATE_SETTINGS);
         actionRow(general,"אפשרויות מנהל","כניסה באמצעות קוד",ControlIcon.SETTINGS,
                 ()->startActivity(new Intent(this,AdminActivity.class)));
-        Button close=UI.b(this,"חזרה לאפליקציה");close.setOnClickListener(v->finish());root.addView(close);
+        Button close=UI.b(this,"חזרה לאפליקציה");close.setOnClickListener(v->returnToKiosk());root.addView(close);
     }
     private void systemRow(LinearLayout parent,String title,String caption,int icon,String action){
         actionRow(parent,title,caption,icon,()->{
@@ -97,6 +97,19 @@ public class SettingsActivity extends Activity {
         TextView chevron=UI.note(this,"‹");chevron.setTextSize(26);chevron.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);row.addView(chevron);
         parent.addView(row,new LinearLayout.LayoutParams(-1,-2));
     }
+    private void returnToKiosk() {
+        if (Prefs.setup(this) && !Prefs.maintenance(this)) {
+            Intent target = getPackageManager().getLaunchIntentForPackage(Prefs.main(this));
+            if (target != null) {
+                target.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                try { startActivity(target); finish(); return; }
+                catch (RuntimeException ignored) { }
+            }
+            startActivity(new Intent(this,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+        }
+        finish();
+    }
+    @Override public void onBackPressed() { returnToKiosk(); }
     @Override protected void onResume(){super.onResume();getContentResolver().registerContentObserver(Settings.System.CONTENT_URI,true,observer);BackKeyService.refreshAccess();refresh();}
     @Override protected void onPause(){getContentResolver().unregisterContentObserver(observer);super.onPause();}
     private void refresh(){
