@@ -57,7 +57,15 @@ public class AdminActivity extends Activity {
         button("הגדרות Android (מנהל בלבד)", () -> openAndroidSettings(android.provider.Settings.ACTION_SETTINGS));
         button("הגדרות SIM ונתונים סלולריים", () -> openAndroidSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
-        button("ניסוי: וילון במקום קיצור מצלמה", () -> startActivity(new Intent(this,CameraShadeActivity.class)));
+        button("ניסוי: פתיחת הווילון החלופי", () -> startActivity(new Intent(this,CameraShadeActivity.class)));
+        button("הפעל קיצור לחיצה כפולה לווילון", () -> {
+            boolean ok=Policy.setCameraShortcut(this,true);
+            UI.msg(this,ok?"קיצור המצלמה הוגדר לווילון; בדוק במכשיר":"לא ניתן להפעיל ללא Device Owner");
+        });
+        button("בטל קיצור והחזר מצלמה", () -> {
+            boolean ok=Policy.setCameraShortcut(this,false);
+            UI.msg(this,ok?"הפניית קיצור המצלמה בוטלה":"לא ניתן לבטל ללא Device Owner");
+        });
         button("תחזוקה והרשאות וילון ההגדרות (Magisk)", () -> {
             enterMaintenance();
             startActivity(new Intent(this, AccessSetupActivity.class));
