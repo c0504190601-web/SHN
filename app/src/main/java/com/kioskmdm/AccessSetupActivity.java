@@ -34,7 +34,19 @@ public class AccessSetupActivity extends Activity {
         }
         root.addView(UI.note(this,"משוך מהפס שבקצה העליון כדי לפתוח את הווילון. גלגל השיניים פותח את ההגדרות המלאות."));
         status=UI.note(this,"");root.addView(status);
+        root.addView(UI.note(this, "מכשיר Magisk: אפשר להתקין מנגנון שיחזיר את וילון ההגדרות אחרי הדלקת המכשיר. ההתקנה נעשית רק לאחר אישור Root מפורש."));
+        Button install=UI.b(this,"התקנת הפעלה אוטומטית דרך Magisk");
+        install.setOnClickListener(v->magisk(true));root.addView(install);
+        Button remove=UI.secondary(this,"הסרת מנגנון Magisk");
+        remove.setOnClickListener(v->magisk(false));root.addView(remove);
         Button done=UI.b(this,"חזרה");done.setOnClickListener(v->finish());root.addView(done);
+    }
+    private void magisk(boolean install) {
+        new Thread(() -> {
+            String result=MagiskBoot.execute(install);
+            runOnUiThread(() -> new android.app.AlertDialog.Builder(this)
+                    .setTitle("Magisk").setMessage(result).setPositiveButton("אישור",null).show());
+        }).start();
     }
     private void open(Intent intent){try{startActivity(intent);}catch(RuntimeException e){UI.msg(this,"מסך ההרשאה אינו זמין במכשיר");}}
     @Override protected void onResume(){super.onResume();if(!isFinishing())handler.post(refresh);}
