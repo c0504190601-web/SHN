@@ -198,7 +198,9 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
   if(!active()||owner==null)return;
   for(String member:new String[]{"mRootView","mFooterView","mSecurityFooterView"}){
    try{
-    Object root=XposedHelpers.getObjectField(owner,member);
+    java.lang.reflect.Field field=owner.getClass().getDeclaredField(member);
+    field.setAccessible(true);
+    Object root=field.get(owner);
     if(root instanceof View)((View)root).setVisibility(View.GONE);
    }catch(Throwable ignored){}
   }
