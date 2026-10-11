@@ -8,8 +8,9 @@ public final class Policy{
   r(m,a,UserManager.DISALLOW_FACTORY_RESET,Prefs.opt(c,"reset",true));r(m,a,UserManager.DISALLOW_SAFE_BOOT,Prefs.opt(c,"safe",true));r(m,a,UserManager.DISALLOW_DEBUGGING_FEATURES,Prefs.opt(c,"adb",false));r(m,a,UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES,Prefs.opt(c,"install",true));r(m,a,UserManager.DISALLOW_UNINSTALL_APPS,Prefs.opt(c,"uninstall",true));r(m,a,UserManager.DISALLOW_ADD_USER,Prefs.opt(c,"users",true));
   try{IntentFilter home=new IntentFilter(Intent.ACTION_MAIN);home.addCategory(Intent.CATEGORY_HOME);home.addCategory(Intent.CATEGORY_DEFAULT);m.addPersistentPreferredActivity(a,home,new ComponentName(c,MainActivity.class));}catch(Exception ignored){}
   boolean originalShade=Prefs.opt(c,"original_shade",false);
-  try{m.setStatusBarDisabled(a,!originalShade && Prefs.opt(c,"status",true));}catch(Exception ignored){}
-  try{m.setLockTaskPackages(a,originalShade?new String[]{}:new String[]{c.getPackageName(),main});}catch(Exception ignored){} applyBlocked(c); applyCameraShortcut(c);
+  boolean powerShade=Prefs.opt(c,"power_shade",false);
+  try{m.setStatusBarDisabled(a,!originalShade && (powerShade || Prefs.opt(c,"status",true)));}catch(Exception ignored){}
+  try{m.setLockTaskPackages(a,(originalShade||powerShade)?new String[]{}:new String[]{c.getPackageName(),main});}catch(Exception ignored){} applyBlocked(c); applyCameraShortcut(c);
  }
  static void applyBlocked(Context c){if(!owner(c))return;for(String pkg:Prefs.blocked(c))if(!isProtected(c,pkg))try{d(c).setApplicationHidden(cn(c),pkg,true);}catch(Exception ignored){}}
  static void applyCameraShortcut(Context c) {
