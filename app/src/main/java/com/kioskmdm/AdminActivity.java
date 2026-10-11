@@ -58,6 +58,7 @@ public class AdminActivity extends Activity {
         button("הגדרות SIM ונתונים סלולריים", () -> openAndroidSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
         button(Prefs.opt(this,"original_shade",false) ? "שחזור הצמדה ונעילה חזקה" : "ניסוי: וילון Android מקורי ללא הצמדה", this::toggleOriginalShade);
+        button(Prefs.opt(this,"power_shade",false) ? "בטל וילון חלופי וחזור להצמדה" : "הפעל וילון חלופי עם לחיצה כפולה", this::togglePowerShade);
         button("ניסוי: פתיחת הווילון החלופי", () -> startActivity(new Intent(this,CameraShadeActivity.class)));
         button("הפעל קיצור לחיצה כפולה לווילון", () -> {
             boolean ok=Policy.setCameraShortcut(this,true);
@@ -77,6 +78,26 @@ public class AdminActivity extends Activity {
         close.setOnClickListener(v -> finish()); root.addView(close);
     }
 
+    private void togglePowerShade() {
+        if(!authenticated || !Policy.owner(this))return;
+        if(Prefs.opt(this,"power_shade",false)) {
+            Prefs.setOpt(this,"power_shade",false);
+            Policy.apply(this,Prefs.main(this));
+            UI.msg(this,"הצמדה ושורת מצב חסומה הוחזרו");
+            lock();
+            return;
+        }
+        new AlertDialog.Builder(this).setTitle("וילון חלופי בלחיצה כפולה")
+            .setMessage("מצב זה מסתיר את שורת המצב המקורית ומשאיר את הווילון החלופי. ההצמדה מבוטלת כדי לאפשר לחיצה כפולה, ולכן חסימת 'אחרונים' תלויה במודול SystemUI ואינה מובטחת. בדוק לפני שימוש קבוע.")
+            .setNegativeButton("ביטול",null)
+            .setPositiveButton("הפעל",(dialog,which)->{
+                Prefs.setOpt(this,"original_shade",false);
+                Prefs.setOpt(this,"power_shade",true);
+                Prefs.setOpt(this,"camera_shortcut",true);
+                Policy.apply(this,Prefs.main(this));
+                lock();
+            }).show();
+    }
     private void toggleOriginalShade() {
         if(!authenticated || !Policy.owner(this))return;
         if(Prefs.opt(this,"original_shade",false)) {
@@ -99,6 +120,7 @@ public class AdminActivity extends Activity {
             .setNegativeButton("ביטול",null)
             .setPositiveButton("הפעל ניסוי",(dialog,which)->{
                 Prefs.setOpt(this,"camera_shortcut",false);
+                Prefs.setOpt(this,"power_shade",false);
                 Prefs.setOpt(this,"original_shade",true);
                 Policy.apply(this,Prefs.main(this));
                 UI.msg(this,"מצב וילון Android הופעל");
