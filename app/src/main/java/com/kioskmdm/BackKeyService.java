@@ -23,7 +23,7 @@ public class BackKeyService extends AccessibilityService {
     private WindowManager windows;
     private View edge;
     private FrameLayout shade;
-    private Tile wifi, bluetooth, rotation;
+    private Tile wifi, bluetooth, rotation, cellular;
     private boolean registered;
     private boolean preview;
     private static BackKeyService instance;
@@ -32,7 +32,7 @@ public class BackKeyService extends AccessibilityService {
         @Override public void onChange(boolean selfChange) { refreshTiles(); }
     };
     private final Runnable healthCheck = new Runnable() {
-        @Override public void run() { reconcile(); handler.postDelayed(this, 2000); }
+        @Override public void run() { reconcile(); refreshTiles(); handler.postDelayed(this, 2000); }
     };
     private final BroadcastReceiver stateChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent intent) {
@@ -62,6 +62,7 @@ public class BackKeyService extends AccessibilityService {
             filter.addAction(Intent.ACTION_SCREEN_OFF);filter.addAction(Intent.ACTION_SCREEN_ON);
             filter.addAction(Intent.ACTION_USER_PRESENT);filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
             filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            filter.addAction(android.net.ConnectivityManager.CONNECTIVITY_ACTION);
             if(Build.VERSION.SDK_INT>=33)registerReceiver(stateChanges,filter,RECEIVER_EXPORTED);
             else registerReceiver(stateChanges,filter);
             Prefs.p(this).registerOnSharedPreferenceChangeListener(preferences);
@@ -96,28 +97,44 @@ public class BackKeyService extends AccessibilityService {
         int id=getResources().getIdentifier("status_bar_height","dimen","android");
         return Math.max(UI.dp(this,24),id==0?0:getResources().getDimensionPixelSize(id));
     }
+    // A completely invisible gesture strip. Taps never open the shade;
+    // only a downward swipe that begins at the very top of the display does.
     private void createEdge() {
-        FrameLayout strip=new FrameLayout(this);
-        strip.setContentDescription("פתיחת הגדרות מהירות");
-        strip.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        strip.setBackgroundColor(0x08000000);
-        View pill=new View(this);pill.setBackground(UI.bg(0xff8794a5,UI.dp(this,3)));
-        FrameLayout.LayoutParams grip=new FrameLayout.LayoutParams(UI.dp(this,42),UI.dp(this,4),Gravity.CENTER);
-        strip.addView(pill,grip);
-        strip.setOnClickListener(v->openShade());
-        strip.setOnTouchListener(new View.OnTouchListener(){
-            float x,y;
-            public boolean onTouch(View v,android.view.MotionEvent event){
-                if(event.getActionMasked()==android.view.MotionEvent.ACTION_DOWN){x=event.getRawX();y=event.getRawY();return true;}
-                if(event.getActionMasked()==android.view.MotionEvent.ACTION_UP){
-                    float dx=Math.abs(event.getRawX()-x),dy=event.getRawY()-y;
-                    if((dy>=UI.dp(BackKeyService.this,20)&&dy>dx)||(Math.abs(dy)<UI.dp(BackKeyService.this,12)&&dx<UI.dp(BackKeyService.this,12)))v.performClick();
+        FrameLayout strip = new FrameLayout(this);
+        strip.setContentDescription("החלק מלמעלה למטה לפתיחת הגדרות מהירות");
+        strip.setBackgroundColor(Color.TRANSPARENT);
+        strip.setOnTouchListener(new View.OnTouchListener() {
+            float startX, startY;
+            boolean opened;
+            @Override public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = event.getRawX();
+                        startY = event.getRawY();
+                        opened = false;
+                        return true;
+                    case MotionEvent.ACTION_MOVE:
+                    case MotionEvent.ACTION_UP:
+                        float dx = Math.abs(event.getRawX() - startX);
+                        float dy = event.getRawY() - startY;
+                        if (!opened && dy >= UI.dp(BackKeyService.this, 26) && dy > dx) {
+                            opened = true;
+                            openShade();
+                        }
+                        return true;
+                    case MotionEvent.ACTION_CANCEL:
+                        return true;
+                    default: return true;
                 }
-                return true;
             }
         });
-        try{windows.addView(strip,params(-1,topInset()+UI.dp(this,4),false));edge=strip;}
-        catch(RuntimeException ignored){edge=null;}
+        // Includes the very top edge on devices whose system status bar is disabled.
+        try {
+            windows.addView(strip, params(-1, UI.dp(this, 64), false));
+            edge = strip;
+        } catch (RuntimeException ignored) {
+            edge = null;
+        }
     }
     private void removeEdge(){
         if(edge!=null){try{windows.removeView(edge);}catch(RuntimeException ignored){}edge=null;}
@@ -140,7 +157,7 @@ public class BackKeyService extends AccessibilityService {
         scroll.setOnClickListener(v->{});
         LinearLayout panel=new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setPadding(UI.dp(this,18),UI.dp(this,20),UI.dp(this,18),UI.dp(this,8));
+        panel.setPadding(UI.dp(this,18),UI.dp(this,30),UI.dp(this,18),UI.dp(this,12));
         panel.setBackground(UI.bg(0xfff6f8fd,UI.dp(this,28)));
         panel.setOnClickListener(v->{});
         LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);
@@ -158,8 +175,9 @@ public class BackKeyService extends AccessibilityService {
         LinearLayout tiles=new LinearLayout(this);tiles.setOrientation(LinearLayout.HORIZONTAL);
         wifi=new Tile("Wi-Fi",ControlIcon.WIFI,()->DeviceControls.toggleWifi(this));
         bluetooth=new Tile("Bluetooth",ControlIcon.BLUETOOTH,()->DeviceControls.toggleBluetooth(this));
-        rotation=new Tile("סיבוב אוטומטי",ControlIcon.ROTATION,()->DeviceControls.setRotation(this,DeviceControls.rotationState(this)!=DeviceControls.ON));
-        for(Tile tile:new Tile[]{wifi,bluetooth,rotation}){
+        rotation=new Tile("סיבוב",ControlIcon.ROTATION,()->DeviceControls.setRotation(this,DeviceControls.rotationState(this)!=DeviceControls.ON));
+        cellular=new Tile("נתונים",ControlIcon.CLOCK,()->{closeShade();openSettings();});
+        for(Tile tile:new Tile[]{wifi,bluetooth,rotation,cellular}){
             LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,1);p.setMargins(UI.dp(this,3),0,UI.dp(this,3),0);tiles.addView(tile,p);
         }
         panel.addView(tiles,new LinearLayout.LayoutParams(-1,UI.dp(this,132)));
@@ -176,15 +194,15 @@ public class BackKeyService extends AccessibilityService {
         };
         dismiss.setOnTouchListener(swipeUp);panel.addView(dismiss);
         scroll.addView(panel);
-        int width=Math.min(getResources().getDisplayMetrics().widthPixels-UI.dp(this,16),UI.dp(this,580));
+        int width=getResources().getDisplayMetrics().widthPixels;
         FrameLayout.LayoutParams card=new FrameLayout.LayoutParams(width,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL);
-        card.topMargin=topInset()+UI.dp(this,8);card.bottomMargin=UI.dp(this,24);
+        card.topMargin=0;card.bottomMargin=UI.dp(this,24);
         screen.addView(scroll,card);
         try{
             windows.addView(screen,params(-1,-1,true));shade=screen;screen.requestFocus();refreshTiles();
             panel.setTranslationY(-UI.dp(this,36));panel.setAlpha(0f);
             panel.animate().translationY(0).alpha(1).setDuration(180).start();
-        }catch(RuntimeException exception){shade=null;wifi=null;bluetooth=null;rotation=null;}
+        }catch(RuntimeException exception){shade=null;wifi=null;bluetooth=null;rotation=null;cellular=null;}
     }
     private TextView text(String text,int size,int color){
         TextView view=new TextView(this);view.setText(text);view.setTextSize(size);view.setTextColor(color);return view;
@@ -207,11 +225,20 @@ public class BackKeyService extends AccessibilityService {
             setEnabled(value!=DeviceControls.CHANGING&&value!=DeviceControls.UNAVAILABLE);
             setAlpha(value==DeviceControls.UNAVAILABLE?.5f:1f);
         }
+        void updateConnection(boolean connected) {
+            setBackground(UI.bg(connected?UI.ACCENT:Color.WHITE,UI.dp(getContext(),20)));
+            icon.tint(connected?Color.WHITE:UI.ACCENT);
+            label.setTextColor(connected?Color.WHITE:UI.INK);
+            state.setText(connected?"מחובר":"לא מחובר");
+            state.setTextColor(connected?0xffdce8ff:UI.MUTED);
+            setContentDescription("נתונים סלולריים, "+state.getText());
+        }
     }
     private void refreshTiles(){
         if(wifi!=null)wifi.update(DeviceControls.wifiState(this));
         if(bluetooth!=null)bluetooth.update(DeviceControls.bluetoothState(this));
         if(rotation!=null)rotation.update(DeviceControls.rotationState(this));
+        if(cellular!=null)cellular.updateConnection(DeviceControls.cellularConnected(this));
     }
     private void openSettings(){
         if(!Prefs.setup(this)){UI.msg(this,"הווילון מוכן לשימוש לאחר סיום ההגדרה");return;}
