@@ -122,7 +122,7 @@ public class MainActivity extends Activity {
         BackKeyService.refreshAccess();
         if (Prefs.maintenance(this)) { maintenance(); return; }
         lockedSurface();
-        if(Prefs.opt(this,"original_shade",false)) {
+        if((Prefs.opt(this,"original_shade",false)||Prefs.opt(this,"power_shade",false))) {
             try {stopLockTask();} catch(RuntimeException ignored) {}
         } else ensureLockTask();
         // A quick Back is an ordinary return, never a reason to open administrator UI.
@@ -157,7 +157,7 @@ public class MainActivity extends Activity {
     }
 
     private void ensureLockTask() {
-        if (Prefs.maintenance(this) || Prefs.opt(this,"original_shade",false)) return;
+        if (Prefs.maintenance(this) || (Prefs.opt(this,"original_shade",false)||Prefs.opt(this,"power_shade",false))) return;
         try {
             android.app.ActivityManager manager = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
             if (Policy.owner(this) && Policy.d(this).isLockTaskPermitted(getPackageName())
