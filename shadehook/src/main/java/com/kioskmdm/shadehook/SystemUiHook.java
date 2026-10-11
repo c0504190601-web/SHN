@@ -9,6 +9,8 @@ import android.os.SystemClock;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
+import android.view.KeyEvent;
+import android.view.ViewGroup;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +32,7 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
  @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p){
   if(!"com.android.systemui".equals(p.packageName))return;
   gear(p.classLoader);
+  securityFooter(p.classLoader);
   tiles(p.classLoader);
   notifications(p.classLoader);
   recents(p.classLoader);
@@ -190,6 +193,31 @@ public final class SystemUiHook implements IXposedHookLoadPackage {
     if(active()&&p.args.length>0&&Boolean.TRUE.equals(p.args[0]))stop(p);
    }
   });
+ }
+ private static void hideManagementFooter(Object owner){
+  if(!active()||owner==null)return;
+  for(String member:new String[]{"mRootView","mFooterView","mSecurityFooterView"}){
+   try{
+    Object root=XposedHelpers.getObjectField(owner,member);
+    if(root instanceof View)((View)root).setVisibility(View.GONE);
+   }catch(Throwable ignored){}
+  }
+ }
+ private static void securityFooter(ClassLoader loader){
+  // The Device Owner remains active; this hides only the optional SystemUI footer.
+  for(String cls:new String[]{"com.android.systemui.qs.QSSecurityFooter",
+    "com.android.systemui.qs.SecurityFooter"}){
+   for(String method:new String[]{"getView","refreshState","handleRefreshState",
+     "setListening","onAttachedToWindow","updateVisibility","handleUpdateState"}){
+    hook(cls,loader,method,new XC_MethodHook(){
+     @Override protected void afterHookedMethod(MethodHookParam p){
+      if(!active())return;
+      hideManagementFooter(p.thisObject);
+      if(p.getResult() instanceof View)((View)p.getResult()).setVisibility(View.GONE);
+     }
+    });
+   }
+  }
  }
  private static void notifications(ClassLoader loader){
   for(String method:new String[]{"onAttachedToWindow","onLayout"}){
