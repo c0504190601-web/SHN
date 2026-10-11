@@ -71,6 +71,7 @@ public class BackKeyService extends AccessibilityService {
         }
         handler.removeCallbacks(healthCheck);
         handler.post(healthCheck);
+        handler.postDelayed(this::reconcile, 3000);
     }
 
     private boolean shouldShow() {
