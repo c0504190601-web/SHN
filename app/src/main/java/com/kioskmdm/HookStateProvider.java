@@ -5,7 +5,7 @@ public final class HookStateProvider extends ContentProvider {
  @Override public Cursor query(Uri u,String[] p,String s,String[] a,String o){
   if(!"state".equals(u.getLastPathSegment()))return null;
   MatrixCursor c=new MatrixCursor(new String[]{"active"});
-  c.addRow(new Object[]{Prefs.setup(getContext())&&Prefs.opt(getContext(),"original_shade",false)&&!Prefs.maintenance(getContext())?1:0});
+  c.addRow(new Object[]{Prefs.setup(getContext())&&(Prefs.opt(getContext(),"original_shade",false)||Prefs.opt(getContext(),"power_shade",false))&&!Prefs.maintenance(getContext())?1:0});
   return c;
  }
  @Override public String getType(Uri u){return "vnd.android.cursor.item/vnd.com.kioskmdm.hookstate";}
