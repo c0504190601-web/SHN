@@ -57,6 +57,7 @@ public class AdminActivity extends Activity {
         button("הגדרות Android (מנהל בלבד)", () -> openAndroidSettings(android.provider.Settings.ACTION_SETTINGS));
         button("הגדרות SIM ונתונים סלולריים", () -> openAndroidSettings(android.provider.Settings.ACTION_DATA_ROAMING_SETTINGS));
         button("הסרת הניהול מהמכשיר", this::removeManagement);
+        button("ניסוי: וילון במקום קיצור מצלמה", () -> startActivity(new Intent(this,CameraShadeActivity.class)));
         button("תחזוקה והרשאות וילון ההגדרות (Magisk)", () -> {
             enterMaintenance();
             startActivity(new Intent(this, AccessSetupActivity.class));
