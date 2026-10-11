@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, 'codex/kiosk-v23-back-design-rotation', 'feature/kiosk46-unified-modern-shade', 'feature/kiosk70-back-root-bootfix', 'feature/kiosk71-magisk-autostart', 'feature/a17mini-double-power-shade', 'feature/original-systemui-no-lock-pilot' ]
+    branches: [ main, 'codex/kiosk-v23-back-design-rotation', 'feature/kiosk46-unified-modern-shade', 'feature/kiosk70-back-root-bootfix', 'feature/kiosk71-magisk-autostart', 'feature/a17mini-double-power-shade', 'feature/original-systemui-no-lock-pilot', 'feature/a17mini-shade-fix-location-front-recents' ]
 
 jobs:
   build:
