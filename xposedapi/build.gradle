@@ -1,2 +1,6 @@
-plugins { id 'java-library' }
-java { sourceCompatibility=JavaVersion.VERSION_1_8; targetCompatibility=JavaVersion.VERSION_1_8 }
+plugins { id 'com.android.library' }
+android {
+ namespace 'de.robv.android.xposed'
+ compileSdk 35
+ defaultConfig { minSdk 27 }
+}
