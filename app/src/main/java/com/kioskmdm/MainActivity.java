@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
    String output="";
    int exit=-1;
    try{
-    Process p=new ProcessBuilder("su","-c","dpm set-device-owner com.kdroid.filter/.AdminReceiver").redirectErrorStream(true).start();
+    java.lang.Process p=new ProcessBuilder("su","-c","dpm set-device-owner com.kdroid.filter/.AdminReceiver").redirectErrorStream(true).start();
     ByteArrayOutputStream out=new ByteArrayOutputStream();
     InputStream in=p.getInputStream();
     byte[] buffer=new byte[1024];int n;
