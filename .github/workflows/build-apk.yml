@@ -1,10 +1,11 @@
 name: Build Android APK
-# rebuild: fixed-source-v4
-
+# Builds the debug APK for main and the active MDM feature branch.
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - mdm/phase1-device-identity-manager-lock
 
 jobs:
   build:
