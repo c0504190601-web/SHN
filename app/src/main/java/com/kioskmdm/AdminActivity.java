@@ -28,7 +28,7 @@ public class AdminActivity extends Activity{
  }
  void manage(){
   l=UI.root(this,"ניהול והגבלות");
-  opt("חסום איפוס להגדרות יצרן","reset",true);opt("חסום מצב בטוח","safe",true);opt("חסום ADB / אפשרויות מפתחים","adb",false);opt("חסום התקנה ממקורות לא ידועים","install",true);opt("חסום הסרת אפליקציות","uninstall",true);opt("חסום הוספת משתמשים","users",true);opt("חסום שורת מצב והתראות","status",true);
+  opt("חסום איפוס להגדרות יצרן","reset",true);opt("חסום מצב בטוח","safe",true);opt("חסום ADB / אפשרויות מפתחים","adb",false);opt("חסום התקנה ממקורות לא ידועים","unknown_sources",true);opt("חסום התקנת אפליקציות","install_apps",false);opt("חסום הסרת אפליקציות","uninstall",true);opt("חסום הוספת משתמשים","users",true);opt("חסום שורת מצב והתראות","status",true);
   opt("חסום שינוי Wi-Fi","wifi",false);opt("חסום Bluetooth","bluetooth",false);
   opt("חסום שינוי הגדרות Bluetooth","bluetooth_config",false);opt("חסום שינוי תאריך ושעה","date_time",false);
   opt("חסום שינוי הגדרות מיקום","location_config",false);opt("חסום שיתוף מיקום","share_location",false);
@@ -37,7 +37,7 @@ public class AdminActivity extends Activity{
   opt("חסום ניהול אישורים ותעודות","credentials",false);opt("חסום הדפסה","printing",false);
   opt("חסום הגדרות שידורי חירום","cell_broadcast",false);opt("חסום הפעלת מיקרופון","microphone",false);
   opt("חסום מצלמה","camera",false);opt("חסום צילומי מסך והקלטת מסך","screenshots",false);
-  Button save=UI.b(this,"שמור והחל מדיניות");save.setOnClickListener(v->{Policy.apply(this,Prefs.main(this));UI.msg(this,"המדיניות הוחלה ככל שהמכשיר וגרסת Android תומכים בה");});l.addView(save);
+  Button save=UI.b(this,"שמור והחל מדיניות");save.setOnClickListener(v->{String report=Policy.apply(this,Prefs.main(this));new AlertDialog.Builder(this).setTitle("תוצאות החלת המדיניות").setMessage(report).setPositiveButton("סגור",null).show();});l.addView(save);
  }
  void opt(String label,String key,boolean def){Switch s=UI.sw(this,label,Prefs.opt(this,key,def));s.setOnCheckedChangeListener((v,on)->Prefs.setOpt(this,key,on));l.addView(s);}
  void apps(){
