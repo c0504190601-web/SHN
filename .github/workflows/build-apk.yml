@@ -1,5 +1,6 @@
 name: Build Android APK
 # Builds the debug APK for main and the active MDM feature branch.
+# CI verification for the current MDM implementation.
 on:
   workflow_dispatch:
   push:
