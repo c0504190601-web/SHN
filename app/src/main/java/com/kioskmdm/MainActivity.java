@@ -89,7 +89,7 @@ public class MainActivity extends Activity {
   pin=new EditText(this);pin.setHint("קוד מנהל – לפחות 4 ספרות");pin.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin);
   pin2=new EditText(this);pin2.setHint("אימות קוד מנהל");pin2.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin2);
   l.addView(UI.note(this,"הגנות"));
-  addOpt("חסום איפוס להגדרות יצרן","reset",true);addOpt("חסום מצב בטוח (Safe Mode)","safe",true);addOpt("חסום ADB / אפשרויות מפתחים","adb",false);addOpt("חסום התקנת אפליקציות","install",true);addOpt("חסום הסרת אפליקציות","uninstall",true);addOpt("חסום הוספת משתמשים","users",true);addOpt("חסום שורת מצב והתראות","status",true);
+  addOpt("חסום איפוס להגדרות יצרן","reset",true);addOpt("חסום מצב בטוח (Safe Mode)","safe",true);addOpt("חסום ADB / אפשרויות מפתחים","adb",false);addOpt("חסום התקנה ממקורות לא ידועים","unknown_sources",true);addOpt("חסום התקנת אפליקציות","install_apps",false);addOpt("חסום הסרת אפליקציות","uninstall",true);addOpt("חסום הוספת משתמשים","users",true);addOpt("חסום שורת מצב והתראות","status",true);
   l.addView(UI.note(this,"בחר אפליקציה ראשית"));
   PackageManager pm=getPackageManager();Intent q=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
   for(ResolveInfo r:pm.queryIntentActivities(q,0)){String p=r.activityInfo.packageName;if(p.equals(getPackageName()))continue;if(pm.getLaunchIntentForPackage(p)!=null){pk.add(p);names.add(r.loadLabel(pm)+"  •  "+p);}}
