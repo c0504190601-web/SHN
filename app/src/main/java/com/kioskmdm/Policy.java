@@ -14,8 +14,8 @@ public final class Policy {
   DevicePolicyManager m=d(c);ComponentName a=cn(c);
   String[][] restrictions={
    {"reset",UserManager.DISALLOW_FACTORY_RESET},{"safe",UserManager.DISALLOW_SAFE_BOOT},
-   {"adb",UserManager.DISALLOW_DEBUGGING_FEATURES},{"install",UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES},
-   {"install",UserManager.DISALLOW_INSTALL_APPS},{"uninstall",UserManager.DISALLOW_UNINSTALL_APPS},
+   {"adb",UserManager.DISALLOW_DEBUGGING_FEATURES},{"unknown_sources",UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES},
+   {"install_apps",UserManager.DISALLOW_INSTALL_APPS},{"uninstall",UserManager.DISALLOW_UNINSTALL_APPS},
    {"users",UserManager.DISALLOW_ADD_USER},{"wifi","no_config_wifi"},{"bluetooth","no_bluetooth"},
    {"bluetooth_config","no_config_bluetooth"},{"date_time","no_config_date_time"},
    {"location_config","no_config_location"},{"tethering","no_config_tethering"},
