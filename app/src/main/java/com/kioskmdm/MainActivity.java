@@ -7,11 +7,83 @@ import android.provider.Settings;
 import android.text.InputType;
 import android.widget.*;
 import java.util.*;
+import java.io.*;
 
 public class MainActivity extends Activity {
  EditText pin,pin2; ArrayList<String> pk=new ArrayList<>(),names=new ArrayList<>(); Spinner sp; LinearLayout l;
- protected void onCreate(Bundle b){super.onCreate(b);if(!Prefs.setup(this)&&Policy.owner(this)&&Prefs.romConfigured())Prefs.bootstrapFromRom(this);if(!Prefs.setup(this))setup();else launch();}
+ boolean setupShown=false;
+
+ protected void onCreate(Bundle b){
+  super.onCreate(b);
+  if(!Prefs.setup(this)&&Policy.owner(this)&&Prefs.romConfigured())Prefs.bootstrapFromRom(this);
+  if(!Prefs.setup(this)){
+   if(Policy.owner(this))setup();else enrollment();
+  }else launch();
+ }
+
+ @Override protected void onResume(){
+  super.onResume();
+  // אחרי שהמשתמש הריץ את פקודת ADB וחזר לאפליקציה, מזהים אוטומטית את ההרשאה.
+  if(!Prefs.setup(this)&&Policy.owner(this)&&!setupShown)setup();
+ }
+
+ void enrollment(){
+  l=UI.root(this,"הפעלת הרשאת מנהל");
+  l.addView(UI.note(this,"כדי להפעיל את ההגנה, יש להגדיר את K-Droid Filter כמנהל המכשיר (Device Owner). בחר באחת משתי הדרכים:"));
+  Button adb=UI.b(this,"1. העתק פקודת ADB");
+  adb.setOnClickListener(v->copyAdbCommand());
+  l.addView(adb);
+  l.addView(UI.note(this,"העתק את הפקודה, חבר את המכשיר למחשב עם ADB פעיל, והרץ אותה בחלון CMD/PowerShell. לאחר מכן חזור לאפליקציה."));
+  Button root=UI.b(this,"2. הפעל באמצעות Root");
+  root.setOnClickListener(v->activateWithRoot(root));
+  l.addView(root);
+  l.addView(UI.note(this,"אפשרות Root דורשת מכשיר עם Root פעיל ואישור הרשאת superuser. אם הפקודה לא נתמכת במכשיר, אפשר להשתמש במסלול ADB."));
+ }
+
+ void copyAdbCommand(){
+  String command="adb shell dpm set-device-owner com.kdroid.filter/.AdminReceiver";
+  ClipboardManager cm=(ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+  cm.setPrimaryClip(ClipData.newPlainText("ADB Device Owner command",command));
+  UI.msg(this,"פקודת ADB הועתקה");
+ }
+
+ void activateWithRoot(Button button){
+  button.setEnabled(false);
+  button.setText("מנסה להפעיל הרשאת מנהל…");
+  new Thread(()->{
+   String output="";
+   int exit=-1;
+   try{
+    Process p=new ProcessBuilder("su","-c","dpm set-device-owner com.kdroid.filter/.AdminReceiver").redirectErrorStream(true).start();
+    ByteArrayOutputStream out=new ByteArrayOutputStream();
+    InputStream in=p.getInputStream();
+    byte[] buffer=new byte[1024];int n;
+    while((n=in.read(buffer))!=-1)out.write(buffer,0,n);
+    exit=p.waitFor();
+    output=out.toString("UTF-8");
+   }catch(Exception e){output=e.getClass().getSimpleName()+": "+e.getMessage();}
+   final String result=output;
+   final int code=exit;
+   runOnUiThread(()->{
+    if(Policy.owner(this)){
+     UI.msg(this,"הרשאת Device Owner הופעלה בהצלחה");
+     setup();
+    }else{
+     button.setEnabled(true);
+     button.setText("2. נסה שוב באמצעות Root");
+     String detail=result.trim();
+     if(detail.length()>220)detail=detail.substring(0,220);
+     new AlertDialog.Builder(this).setTitle("לא ניתן להפעיל דרך Root")
+      .setMessage("המכשיר לא אישר הפעלת Device Owner. אפשר לנסות דרך ADB.\n\n"+(detail.length()==0?"לא התקבלה הודעת שגיאה.":detail))
+      .setPositiveButton("הבנתי",null).show();
+    }
+   });
+  }).start();
+ }
+
  void setup(){
+  if(setupShown)return;
+  setupShown=true;
   l=UI.root(this,"הגדרת Kiosk MDM");
   l.addView(UI.note(this,Policy.owner(this)?"✓ הרשאת Device Owner פעילה":"לפני הנעילה יש להגדיר את האפליקציה כ-Device Owner"));
   pin=new EditText(this);pin.setHint("קוד מנהל – לפחות 4 ספרות");pin.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);l.addView(pin);
@@ -33,7 +105,6 @@ public class MainActivity extends Activity {
   if(pk.isEmpty()||sp.getSelectedItemPosition()<0){UI.msg(this,"לא נמצאה אפליקציה ראשית תקינה");return;}
   String p=pk.get(sp.getSelectedItemPosition());Prefs.finish(this,p,pin.getText().toString());Policy.apply(this,p);startService(new Intent(this,QuickAccessService.class));launch();
  }
- protected void onResume(){super.onResume();}
  void launch(){
   if(Prefs.maintenance(this))return;
   String p=Prefs.main(this);Intent i=getPackageManager().getLaunchIntentForPackage(p);if(i==null){emergency();return;}
