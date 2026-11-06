@@ -4,6 +4,8 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
 }
 
+def hasReleaseKeystore = System.getenv('KEYSTORE_PATH') != null
+
 android {
     namespace 'com.kdroid.filter'
     compileSdk 35
@@ -30,12 +32,25 @@ android {
         jvmTarget = '17'
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile file(System.getenv('KEYSTORE_PATH'))
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // נבנה כ-debug ב-CI; חתימת debug אוטומטית
         }
         release {
             minifyEnabled false
+            // חתימת release רק כאשר קיים keystore (משתני סביבה ב-CI)
+            if (hasReleaseKeystore) signingConfig signingConfigs.release
         }
     }
 }
