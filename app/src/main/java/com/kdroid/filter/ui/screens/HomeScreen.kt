@@ -47,10 +47,18 @@ import com.kdroid.filter.ui.theme.NeonGreen
 import com.kdroid.filter.ui.theme.TextMuted
 import com.kdroid.filter.ui.theme.TextPrimary
 
-private val TABS = listOf("לוח בקרה", "אבחון", "הגבלות", "יומן")
+private val TABS = listOf("לוח בקרה", "אפליקציות", "אבחון", "הגבלות", "יומן")
 
 @Composable
 fun HomeScreen() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    // אתחול חד-פעמי של רשימת האפליקציות ה"ידועות" — לזיהוי חדשות בהמשך.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val store = com.kdroid.filter.apps.AppPolicyStore(ctx)
+            store.seedKnownIfEmpty(com.kdroid.filter.apps.AppRepository(ctx).allPackageNames())
+        }
+    }
     var tab by remember { mutableIntStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
@@ -70,17 +78,24 @@ fun HomeScreen() {
                 Tab(selected = tab == i, onClick = { tab = i }, text = { Text(title) })
             }
         }
-        // תוכן גלילה; widthIn מרכז את התוכן במסך רחב (רכב/טאבלט)
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp)
-        ) {
-            Column(Modifier.fillMaxWidth().widthIn(max = 720.dp)) {
-                when (tab) {
-                    0 -> DashboardTab()
-                    1 -> DiagnosticsTab()
-                    2 -> RestrictionsTab()
-                    else -> LogTab()
+        // לשונית האפליקציות מנהלת גלילה בעצמה (LazyColumn); השאר בגלילה רגילה.
+        if (tab == 1) {
+            Column(
+                Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)
+                    .widthIn(max = 720.dp)
+            ) { AppsScreen() }
+        } else {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Column(Modifier.fillMaxWidth().widthIn(max = 720.dp)) {
+                    when (tab) {
+                        0 -> DashboardTab()
+                        2 -> DiagnosticsTab()
+                        3 -> RestrictionsTab()
+                        else -> LogTab()
+                    }
                 }
             }
         }
