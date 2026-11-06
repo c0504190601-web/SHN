@@ -1,0 +1,21 @@
+# Render Blueprint — פריסה חינמית של שרת ואתר הניהול
+# Render ← New ← Blueprint ← חיבור מאגר SHN. ממלאים DATABASE_URL (מ-Neon) ו-ADMIN_PASSWORD.
+services:
+  - type: web
+    name: kdroid-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # הדבק את מחרוזת החיבור מ-Neon
+      - key: ADMIN_PASSWORD
+        sync: false          # בחר סיסמת מנהל חזקה
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: JWT_SECRET
+        generateValue: true  # נוצר אוטומטית
+      - key: CORS_ORIGIN
+        value: "*"

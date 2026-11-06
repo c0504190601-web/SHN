@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { adminRouter } from './routes/admin.js';
 import { deviceRouter } from './routes/device.js';
+import { ensureSchema } from './initSchema.js';
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -30,4 +31,8 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`K-Droid Filter server על פורט ${port}`));
+
+// יצירת סכמה ומנהל ראשוני בעלייה (אידמפוטנטי), ואז הרצת השרת.
+ensureSchema()
+  .catch((e) => console.error('אתחול סכמה נכשל:', e.message))
+  .finally(() => app.listen(port, () => console.log(`K-Droid Filter server על פורט ${port}`)));
