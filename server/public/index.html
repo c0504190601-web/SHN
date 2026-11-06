@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K-Droid Filter — ניהול מרחוק</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <span class="brand">K-Droid Filter</span>
+  <span class="who" id="who"></span>
+</header>
+
+<!-- כניסה -->
+<div class="container" id="view-login">
+  <div class="card" style="max-width:380px;margin:40px auto">
+    <h3>כניסת מנהל</h3>
+    <input type="text" id="u" placeholder="שם משתמש" autocomplete="username">
+    <input type="password" id="p" placeholder="סיסמה" autocomplete="current-password">
+    <div class="err" id="loginErr"></div>
+    <button onclick="doLogin()">כניסה</button>
+  </div>
+</div>
+
+<!-- רשימת מכשירים -->
+<div class="container hidden" id="view-devices">
+  <div class="card">
+    <h3>קישור מכשיר חדש</h3>
+    <div class="grid2">
+      <input type="text" id="linkCode" placeholder="קוד קישור מהמכשיר">
+      <input type="text" id="linkName" placeholder="שם למכשיר (לא חובה)">
+    </div>
+    <button onclick="linkDevice()">קשר מכשיר</button>
+    <span class="err" id="linkErr"></span>
+  </div>
+  <div class="card">
+    <h3>המכשירים שלי</h3>
+    <div id="deviceList"></div>
+  </div>
+</div>
+
+<!-- דף מכשיר -->
+<div class="container hidden" id="view-device">
+  <button class="ghost" onclick="showDevices()">← חזרה לרשימה</button>
+  <div id="deviceBody"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
