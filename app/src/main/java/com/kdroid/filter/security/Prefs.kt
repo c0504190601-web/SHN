@@ -67,4 +67,27 @@ class Prefs(ctx: Context) {
     var kioskEnabled: Boolean
         get() = sp.getBoolean("kiosk_enabled", false)
         set(v) = sp.edit().putBoolean("kiosk_enabled", v).apply()
+
+    // --- שרת וסנכרון ---
+    var serverUrl: String?
+        get() = sp.getString("server_url", null)
+        set(v) = sp.edit().putString("server_url", v).apply()
+
+    var deviceToken: String?
+        get() = sp.getString("device_token", null)
+        set(v) = sp.edit().putString("device_token", v).apply()
+
+    var linkCode: String?
+        get() = sp.getString("link_code", null)
+        set(v) = sp.edit().putString("link_code", v).apply()
+
+    var lastAppliedVersion: Int
+        get() = sp.getInt("applied_version", 0)
+        set(v) = sp.edit().putInt("applied_version", v).apply()
+
+    var lastSyncAt: Long
+        get() = sp.getLong("last_sync_at", 0L)
+        set(v) = sp.edit().putLong("last_sync_at", v).apply()
+
+    val isEnrolled: Boolean get() = deviceToken != null
 }

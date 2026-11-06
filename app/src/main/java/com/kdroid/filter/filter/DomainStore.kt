@@ -24,6 +24,11 @@ class DomainStore(ctx: Context) {
     fun blocked(): Set<String> = sp.getStringSet("blocked", emptySet())!!
     fun allowed(): Set<String> = sp.getStringSet("allowed", emptySet())!!
 
+    fun setBlockedAll(items: Collection<String>) =
+        sp.edit().putStringSet("blocked", items.map { norm(it) }.toSet()).apply()
+    fun setAllowedAll(items: Collection<String>) =
+        sp.edit().putStringSet("allowed", items.map { norm(it) }.toSet()).apply()
+
     fun addBlocked(d: String) = add("blocked", d)
     fun removeBlocked(d: String) = remove("blocked", d)
     fun addAllowed(d: String) = add("allowed", d)

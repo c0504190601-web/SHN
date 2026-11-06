@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.kdroid.filter.devadmin.DeviceOwnerManager
 import com.kdroid.filter.diagnostics.Diagnostics
 import com.kdroid.filter.icon.IconVisibility
@@ -143,6 +145,8 @@ private fun DashboardTab() {
 
     KCard("פרטי מכשיר") { info.forEach { (k, v) -> KeyValueRow(k, v) } }
 
+    ServerCard(refreshKey = refresh, onChanged = { refresh++ })
+
     if (!isDO) {
         KCard("הפעלת Device Owner") {
             Text("אפשרות 1 — ADB:", color = TextPrimary, fontSize = 14.sp)
@@ -209,6 +213,73 @@ private fun DiagnosticsTab() {
             onClick = { IconVisibility.setHidden(ctx, !iconHidden); iconHidden = !iconHidden },
             modifier = Modifier.padding(top = 6.dp)
         ) { Text(if (iconHidden) "הצג אייקון (זמני)" else "הסתר אייקון (זמני)") }
+    }
+}
+
+@Composable
+private fun ServerCard(refreshKey: Int, onChanged: () -> Unit) {
+    val ctx = LocalContext.current
+    val prefs = remember { com.kdroid.filter.security.Prefs(ctx) }
+    val scope = rememberCoroutineScope()
+    var url by remember { mutableStateOf(prefs.serverUrl ?: "") }
+    val enrolled = remember(refreshKey) { prefs.isEnrolled }
+    var msg by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+
+    KCard("שרת ושליטה מרחוק") {
+        OutlinedTextField(
+            value = url, onValueChange = { url = it },
+            label = { Text("כתובת השרת (https://...)") }, singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (!enrolled) {
+            OutlinedButton(
+                enabled = !busy,
+                onClick = {
+                    busy = true; msg = "רושם..."
+                    scope.launch {
+                        val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            com.kdroid.filter.sync.SyncClient(ctx).enroll(url.trim())
+                        }
+                        msg = r.message; busy = false; onChanged()
+                    }
+                },
+                modifier = Modifier.padding(top = 6.dp)
+            ) { Text("רישום לשרת") }
+        } else {
+            KeyValueRow("מזהה מכשיר", prefs.deviceId ?: "—")
+            prefs.linkCode?.let {
+                Text("קוד קישור לאתר:", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                Text(it, color = NeonCyan, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("הזן קוד זה באתר הניהול כדי לשייך את המכשיר.", color = TextMuted, fontSize = 12.sp)
+            }
+            val lastSync = if (prefs.lastSyncAt > 0)
+                java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(prefs.lastSyncAt))
+            else "—"
+            KeyValueRow("סנכרון אחרון", lastSync)
+            Row(Modifier.padding(top = 6.dp)) {
+                OutlinedButton(enabled = !busy, onClick = {
+                    busy = true; msg = "מסנכרן..."
+                    scope.launch {
+                        val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            com.kdroid.filter.sync.SyncClient(ctx).sync()
+                        }
+                        msg = if (ok) "סונכרן" else "הסנכרון נכשל"; busy = false; onChanged()
+                    }
+                }) { Text("סנכרן עכשיו") }
+                Spacer(Modifier.width(8.dp))
+                OutlinedButton(enabled = !busy, onClick = {
+                    busy = true; msg = "דוחף..."
+                    scope.launch {
+                        val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            com.kdroid.filter.sync.SyncClient(ctx).pushLocal()
+                        }
+                        msg = if (ok) "המצב נדחף לשרת" else "הדחיפה נכשלה"; busy = false
+                    }
+                }) { Text("דחוף מצב נוכחי") }
+            }
+        }
+        msg?.let { Text(it, color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
     }
 }
 

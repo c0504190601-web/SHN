@@ -33,6 +33,20 @@ class MainActivity : ComponentActivity() {
         val prefs = Prefs(this)
         val owner = DeviceOwnerManager(this)
 
+        // תזמון סנכרון תקופתי אם המכשיר רשום לשרת
+        if (prefs.isEnrolled) {
+            val req = androidx.work.PeriodicWorkRequestBuilder<com.kdroid.filter.sync.SyncWorker>(
+                15, java.util.concurrent.TimeUnit.MINUTES
+            ).setConstraints(
+                androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build()
+            ).build()
+            androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                com.kdroid.filter.sync.SyncWorker.NAME,
+                androidx.work.ExistingPeriodicWorkPolicy.KEEP, req
+            )
+        }
+
         // סדר פתיחה: קודם Device Owner, ורק אז קוד.
         fun initialPhase(): Phase = when {
             pm.isPinSet -> Phase.ENTER_PIN
