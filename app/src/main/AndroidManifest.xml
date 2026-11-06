@@ -30,6 +30,16 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- שירות חומת האש (VPNService מקומי, ללא Root) -->
+        <service
+            android:name=".firewall.FirewallVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.net.VpnService" />
+            </intent-filter>
+        </service>
+
         <!-- DeviceAdminReceiver עבור Device Owner -->
         <receiver
             android:name=".admin.AdminReceiver"

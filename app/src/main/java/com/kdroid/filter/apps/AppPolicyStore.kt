@@ -20,6 +20,7 @@ class AppPolicyStore(ctx: Context) {
 
     fun isNetAllowed(pkg: String) = getSet("net_allowed").contains(pkg)
     fun setNetAllowed(pkg: String, allowed: Boolean) = toggle("net_allowed", pkg, allowed)
+    fun allowedPackages(): Set<String> = getSet("net_allowed")
 
     fun isOnHome(pkg: String) = getSet("on_home").contains(pkg)
     fun setOnHome(pkg: String, on: Boolean) = toggle("on_home", pkg, on)

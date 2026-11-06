@@ -48,4 +48,13 @@ class Prefs(ctx: Context) {
     var iconHidden: Boolean
         get() = sp.getBoolean("icon_hidden", false)
         set(v) = sp.edit().putBoolean("icon_hidden", v).apply()
+
+    // --- חומת אש ---
+    var firewallEnabled: Boolean
+        get() = sp.getBoolean("fw_enabled", false)
+        set(v) = sp.edit().putBoolean("fw_enabled", v).apply()
+
+    var blockWholeDevice: Boolean
+        get() = sp.getBoolean("fw_block_all", false)
+        set(v) = sp.edit().putBoolean("fw_block_all", v).apply()
 }

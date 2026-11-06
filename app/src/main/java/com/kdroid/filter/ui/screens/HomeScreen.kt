@@ -47,7 +47,7 @@ import com.kdroid.filter.ui.theme.NeonGreen
 import com.kdroid.filter.ui.theme.TextMuted
 import com.kdroid.filter.ui.theme.TextPrimary
 
-private val TABS = listOf("לוח בקרה", "אפליקציות", "אבחון", "הגבלות", "יומן")
+private val TABS = listOf("לוח בקרה", "אפליקציות", "חומת אש", "אבחון", "הגבלות", "יומן")
 
 @Composable
 fun HomeScreen() {
@@ -92,8 +92,9 @@ fun HomeScreen() {
                 Column(Modifier.fillMaxWidth().widthIn(max = 720.dp)) {
                     when (tab) {
                         0 -> DashboardTab()
-                        2 -> DiagnosticsTab()
-                        3 -> RestrictionsTab()
+                        2 -> FirewallTab()
+                        3 -> DiagnosticsTab()
+                        4 -> RestrictionsTab()
                         else -> LogTab()
                     }
                 }
@@ -190,6 +191,74 @@ private fun DiagnosticsTab() {
             onClick = { IconVisibility.setHidden(ctx, !iconHidden); iconHidden = !iconHidden },
             modifier = Modifier.padding(top = 6.dp)
         ) { Text(if (iconHidden) "הצג אייקון (זמני)" else "הסתר אייקון (זמני)") }
+    }
+}
+
+@Composable
+private fun FirewallTab() {
+    val ctx = LocalContext.current
+    val fw = remember { com.kdroid.filter.firewall.FirewallController(ctx) }
+    var refresh by remember { mutableStateOf(0) }
+    val running = remember(refresh) { fw.isRunning() }
+    val blockAll = remember(refresh) { fw.blockWholeDevice() }
+    val counts = remember(refresh) { fw.counts() }
+
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) { fw.enable(); refresh++ }
+    }
+
+    KCard("חומת אש") {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("הגנת רשת", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    if (running) "פעילה — אפליקציות לא מורשות חסומות" else "כבויה",
+                    color = if (running) NeonGreen else TextMuted, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = running,
+                onCheckedChange = { on ->
+                    if (on) {
+                        val intent = fw.consentIntent()
+                        if (intent != null) launcher.launch(intent) else { fw.enable(); refresh++ }
+                    } else { fw.disable(); refresh++ }
+                }
+            )
+        }
+        Text(
+            "ברירת המחדל: הכול חסום, ומאשרים לכל אפליקציה בנפרד בלשונית 'אפליקציות'. ללא Root.",
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+    }
+
+    KCard("חסימת אינטרנט לכל המכשיר") {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("נתק אינטרנט לכל האפליקציות", color = TextPrimary, fontSize = 14.sp)
+            androidx.compose.material3.Switch(
+                checked = blockAll,
+                onCheckedChange = { fw.setBlockWholeDevice(it); refresh++ }
+            )
+        }
+    }
+
+    KCard("סיכום") {
+        KeyValueRow("מורשות לאינטרנט", counts.allowed.toString())
+        KeyValueRow("חסומות", counts.blocked.toString())
+        Text(
+            "אנדרואיד מאפשר בד\"כ VPN פעיל אחד; VPN אחר עלול להתנגש. " +
+                "סינון DNS ורשימות דומיינים (כולל דפדפן פנימי) מגיעים בשלב 3ב.",
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+        OutlinedButton(onClick = { refresh++ }, modifier = Modifier.padding(top = 6.dp)) { Text("רענן") }
     }
 }
 
