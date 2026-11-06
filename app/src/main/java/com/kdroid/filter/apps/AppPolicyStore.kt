@@ -24,6 +24,7 @@ class AppPolicyStore(ctx: Context) {
 
     fun isOnHome(pkg: String) = getSet("on_home").contains(pkg)
     fun setOnHome(pkg: String, on: Boolean) = toggle("on_home", pkg, on)
+    fun homePackages(): Set<String> = getSet("on_home")
 
     fun isInAppBrowserBlocked(pkg: String) = getSet("browser_blocked").contains(pkg)
     fun setInAppBrowserBlocked(pkg: String, blocked: Boolean) = toggle("browser_blocked", pkg, blocked)

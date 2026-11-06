@@ -118,6 +118,19 @@ private fun DashboardTab() {
     val info = remember(refresh) { diag.deviceInfo() }
     var activationMsg by remember { mutableStateOf<String?>(null) }
 
+    if (com.kdroid.filter.kiosk.KioskActivity.maintenance) {
+        KCard {
+            Text("מצב תחזוקה פעיל — הקיוסק מושהה.", color = NeonAmber, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            OutlinedButton(
+                onClick = {
+                    com.kdroid.filter.kiosk.KioskActivity.maintenance = false
+                    (ctx as? android.app.Activity)?.finish()
+                },
+                modifier = Modifier.padding(top = 6.dp)
+            ) { Text("סיום תחזוקה וחזרה לקיוסק") }
+        }
+    }
+
     KCard("מצב הגנה") {
         Text(
             if (isDO) "המכשיר מנוהל כ-Device Owner." else "המכשיר אינו Device Owner — חלק מההגבלות לא יחולו.",
@@ -427,9 +440,38 @@ private fun RestrictionsTab() {
         }
     }
 
-    KCard("קיוסק, אתחול ותחזוקה") {
-        Text("Launcher ייעודי, הפעלה לאחר אתחול ומצב תחזוקה — שלב 4ב, בפיתוח.",
-            color = TextMuted, fontSize = 12.sp)
+    KCard("קיוסק ו-Launcher") {
+        val kiosk = remember { com.kdroid.filter.kiosk.KioskController(ctx) }
+        var kmsg by remember(refresh) { mutableStateOf<String?>(null) }
+        val enabled = remember(refresh) { kiosk.isEnabled() }
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("מצב קיוסק", color = TextPrimary, fontSize = 14.sp)
+                Text(
+                    if (enabled) "פעיל — המכשיר נפתח למסך הקיוסק" else "כבוי — מסך בית רגיל",
+                    color = TextMuted, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = enabled,
+                onCheckedChange = { kmsg = if (it) kiosk.enable() else kiosk.disable(); refresh++ }
+            )
+        }
+        Text(
+            "בחר אילו אפליקציות יופיעו במסך הקיוסק בלשונית 'אפליקציות' (הצג במסך הבית).",
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+        OutlinedButton(onClick = { kiosk.openKiosk() }, modifier = Modifier.padding(top = 6.dp)) {
+            Text("פתח קיוסק עכשיו")
+        }
+        Text(
+            "יציאה: כפתור 'תחזוקה' במסך הקיוסק + קוד מנהל. הפעלה אוטומטית לאחר אתחול.",
+            color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+        kmsg?.let { Text(it, color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
     }
 }
 

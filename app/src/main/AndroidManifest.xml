@@ -18,6 +18,18 @@
             android:exported="true"
             android:launchMode="singleTask" />
 
+        <!-- מסך הבית של הקיוסק (נקבע כ-HOME דרך Device Owner בעת הפעלת קיוסק) -->
+        <activity
+            android:name=".kiosk.KioskActivity"
+            android:exported="true"
+            android:launchMode="singleInstance">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <!-- כינוי שמחזיק את אייקון המגירה. הסתרה = כיבוי הכינוי הזה. -->
         <activity-alias
             android:name=".LauncherAlias"

@@ -62,4 +62,9 @@ class Prefs(ctx: Context) {
     var filterMode: Boolean
         get() = sp.getBoolean("fw_filter_mode", false)
         set(v) = sp.edit().putBoolean("fw_filter_mode", v).apply()
+
+    // --- קיוסק ---
+    var kioskEnabled: Boolean
+        get() = sp.getBoolean("kiosk_enabled", false)
+        set(v) = sp.edit().putBoolean("kiosk_enabled", v).apply()
 }
