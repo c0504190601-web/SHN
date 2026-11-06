@@ -3,6 +3,9 @@ package com.kdroid.filter.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -47,7 +51,7 @@ import com.kdroid.filter.ui.theme.NeonGreen
 import com.kdroid.filter.ui.theme.TextMuted
 import com.kdroid.filter.ui.theme.TextPrimary
 
-private val TABS = listOf("לוח בקרה", "אפליקציות", "חומת אש", "אבחון", "הגבלות", "יומן")
+private val TABS = listOf("לוח בקרה", "אפליקציות", "חומת אש", "סינון", "אבחון", "הגבלות", "יומן")
 
 @Composable
 fun HomeScreen() {
@@ -93,8 +97,9 @@ fun HomeScreen() {
                     when (tab) {
                         0 -> DashboardTab()
                         2 -> FirewallTab()
-                        3 -> DiagnosticsTab()
-                        4 -> RestrictionsTab()
+                        3 -> FilteringTab()
+                        4 -> DiagnosticsTab()
+                        5 -> RestrictionsTab()
                         else -> LogTab()
                     }
                 }
@@ -237,12 +242,37 @@ private fun FirewallTab() {
         )
     }
 
+    KCard("מצב פעולה") {
+        val filter = remember(refresh) { fw.filterMode() }
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(if (filter) "סינון דומיינים (DNS)" else "חסימה לפי אפליקציה", color = TextPrimary, fontSize = 14.sp)
+                Text(
+                    if (filter) "רשימות אתרים מותרים/חסומים (לשונית 'סינון')"
+                    else "כל אפליקציה מותרת או חסומה לרשת במלואה",
+                    color = TextMuted, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = filter,
+                onCheckedChange = { fw.setFilterMode(it); refresh++ }
+            )
+        }
+        Text(
+            "אנדרואיד מריץ VPN אחד, לכן בוחרים מצב אחד בכל רגע.",
+            color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+
     KCard("חסימת אינטרנט לכל המכשיר") {
         Row(
             Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("נתק אינטרנט לכל האפליקציות", color = TextPrimary, fontSize = 14.sp)
+            Text("נתק אינטרנט לכל האפליקציות (מצב חסימה)", color = TextPrimary, fontSize = 14.sp)
             androidx.compose.material3.Switch(
                 checked = blockAll,
                 onCheckedChange = { fw.setBlockWholeDevice(it); refresh++ }
@@ -259,6 +289,95 @@ private fun FirewallTab() {
             color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
         )
         OutlinedButton(onClick = { refresh++ }, modifier = Modifier.padding(top = 6.dp)) { Text("רענן") }
+    }
+}
+
+@Composable
+private fun FilteringTab() {
+    val ctx = LocalContext.current
+    val store = remember { com.kdroid.filter.filter.DomainStore(ctx) }
+    var refresh by remember { mutableStateOf(0) }
+    val mode = remember(refresh) { store.listMode }
+
+    KCard("מצב סינון") {
+        Text(
+            "פעיל רק כאשר חומת האש במצב 'סינון דומיינים'.",
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp)
+        )
+        Row {
+            ModeChip("רשימה שחורה (הכול מותר חוץ מ-)", mode == com.kdroid.filter.filter.DomainStore.ListMode.BLOCK) {
+                store.listMode = com.kdroid.filter.filter.DomainStore.ListMode.BLOCK; refresh++
+            }
+            Spacer(Modifier.width(6.dp))
+            ModeChip("רשימה לבנה (הכול חסום חוץ מ-)", mode == com.kdroid.filter.filter.DomainStore.ListMode.ALLOW) {
+                store.listMode = com.kdroid.filter.filter.DomainStore.ListMode.ALLOW; refresh++
+            }
+        }
+        Text("שרת DNS במעלה הזרם: ${store.upstreamDns}", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+    }
+
+    DomainEditor(
+        title = "דומיינים חסומים",
+        items = remember(refresh) { store.blocked().toList() },
+        onAdd = { store.addBlocked(it); refresh++ },
+        onRemove = { store.removeBlocked(it); refresh++ }
+    )
+    DomainEditor(
+        title = "דומיינים מותרים (רשימה לבנה)",
+        items = remember(refresh) { store.allowed().toList() },
+        onAdd = { store.addAllowed(it); refresh++ },
+        onRemove = { store.removeAllowed(it); refresh++ }
+    )
+
+    KCard {
+        Text(
+            "סינון DNS אינו עמיד בפני DoH/DoT או כתובות IP קשיחות. לחסימה קשיחה של אפליקציה " +
+                "השתמש במצב 'חסימה לפי אפליקציה'. מומלץ לבדוק על מכשיר אמיתי.",
+            color = TextMuted, fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+private fun ModeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val c = if (selected) NeonCyan else TextMuted
+    androidx.compose.foundation.layout.Box(
+        Modifier
+            .border(1.dp, c.copy(alpha = 0.5f), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .background(if (selected) NeonCyan.copy(alpha = 0.12f) else androidx.compose.ui.graphics.Color.Transparent,
+                androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) { Text(label, color = c, fontSize = 11.sp) }
+}
+
+@Composable
+private fun DomainEditor(title: String, items: List<String>, onAdd: (String) -> Unit, onRemove: (String) -> Unit) {
+    var input by remember { mutableStateOf("") }
+    KCard(title) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = input, onValueChange = { input = it },
+                label = { Text("example.com") }, singleLine = true,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
+            OutlinedButton(onClick = { if (input.isNotBlank()) { onAdd(input); input = "" } }) { Text("הוסף") }
+        }
+        if (items.isEmpty()) {
+            Text("אין פריטים.", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+        } else {
+            items.forEach { d ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(d, color = TextPrimary, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+                    OutlinedButton(onClick = { onRemove(d) }) { Text("הסר") }
+                }
+            }
+        }
     }
 }
 

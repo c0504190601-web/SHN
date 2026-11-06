@@ -55,6 +55,12 @@ class FirewallController(private val ctx: Context) {
 
     fun blockWholeDevice(): Boolean = prefs.blockWholeDevice
 
+    fun filterMode(): Boolean = prefs.filterMode
+    fun setFilterMode(filter: Boolean) {
+        prefs.filterMode = filter
+        if (isRunning()) startService(FirewallVpnService.ACTION_START) // בנייה מחדש במצב החדש
+    }
+
     data class Counts(val allowed: Int, val blocked: Int)
 
     fun counts(): Counts {

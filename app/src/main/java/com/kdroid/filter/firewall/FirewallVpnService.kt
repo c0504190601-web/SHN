@@ -5,9 +5,11 @@ import android.net.VpnService
 import android.os.ParcelFileDescriptor
 import com.kdroid.filter.apps.AppPolicyStore
 import com.kdroid.filter.apps.AppRepository
+import com.kdroid.filter.filter.DnsFilter
 import com.kdroid.filter.log.EventLog
 import com.kdroid.filter.security.Prefs
 import java.io.FileInputStream
+import java.io.FileOutputStream
 
 /**
  * חומת אש לפי אפליקציה, ללא Root, מבוססת VPNService.
@@ -44,6 +46,11 @@ class FirewallVpnService : VpnService() {
     private fun establish() {
         teardown()
         val prefs = Prefs(this)
+        if (prefs.filterMode) establishFilter(prefs) else establishBlock(prefs)
+    }
+
+    /** מצב 3א — חסימה לפי אפליקציה: המנהרה קולטת הכול ולא מעבירה (drop). */
+    private fun establishBlock(prefs: Prefs) {
         val store = AppPolicyStore(this)
         val builder = Builder()
             .setSession("K-Droid Filter")
@@ -53,53 +60,82 @@ class FirewallVpnService : VpnService() {
             .addAddress("fd00:111::2", 128)
             .addRoute("::", 0)
 
-        // תמיד להחריג את אפליקציית הניהול כדי לשמור על סנכרון לשרת.
-        safeDisallow(builder, packageName)
+        safeDisallow(builder, packageName) // הניהול תמיד מחובר
 
         if (!prefs.blockWholeDevice) {
-            // מצב רגיל: מחריגים (=מאפשרים אינטרנט) רק את המורשות. השאר נחסם.
             val allowed = store.allowedPackages()
             val installed = AppRepository(this).allPackageNames()
             allowed.filter { it != packageName && installed.contains(it) }
                 .forEach { safeDisallow(builder, it) }
         }
-        // אם blockWholeDevice=true — איש מלבד הניהול לא מוחרג ⇒ חסימה מלאה.
 
-        try {
+        val fd = establishOrStop(builder, "חסימה (חסימת כל המכשיר=${prefs.blockWholeDevice})") ?: return
+        startDropReader(fd)
+    }
+
+    /** מצב 3ב — סינון דומיינים: מנתבים רק DNS למנהרה; שאר התעבורה עוברת רגיל. */
+    private fun establishFilter(prefs: Prefs) {
+        val builder = Builder()
+            .setSession("K-Droid Filter DNS")
+            .setMtu(1500)
+            .addAddress("10.111.0.2", 32)
+            .addDnsServer("10.111.0.1")
+            .addRoute("10.111.0.1", 32)
+        safeDisallow(builder, packageName)
+
+        val fd = establishOrStop(builder, "סינון דומיינים") ?: return
+        startFilterReader(fd)
+    }
+
+    private fun establishOrStop(builder: Builder, label: String): ParcelFileDescriptor? {
+        return try {
             val fd = builder.establish()
             if (fd == null) {
                 EventLog.error(this, "Firewall", "establish() החזיר null — ייתכן שחסרה הסכמת VPN")
-                running = false
-                stopSelf()
-                return
+                running = false; stopSelf(); null
+            } else {
+                tun = fd; running = true; Prefs(this).firewallEnabled = true
+                EventLog.info(this, "Firewall", "חומת אש פעילה · מצב: $label")
+                fd
             }
-            tun = fd
-            running = true
-            prefs.firewallEnabled = true
-            EventLog.info(this, "Firewall", "חומת אש פעילה (חסימת כל המכשיר=${prefs.blockWholeDevice})")
-            startReader(fd)
         } catch (e: Exception) {
             EventLog.error(this, "Firewall", "כשל הפעלת מנהרה: ${e.message}")
-            running = false
-            stopSelf()
+            running = false; stopSelf(); null
         }
     }
 
-    /** קורא ומשליך מנות מהמנהרה כדי שה-OS לא יחסום את ה-FD; זהו ה-drop בפועל. */
-    private fun startReader(fd: ParcelFileDescriptor) {
+    /** drop: קריאה והשלכה. */
+    private fun startDropReader(fd: ParcelFileDescriptor) {
         reader = Thread {
             val buf = ByteArray(32767)
             try {
                 FileInputStream(fd.fileDescriptor).use { input ->
                     while (!Thread.currentThread().isInterrupted) {
-                        val n = input.read(buf)
-                        if (n < 0) break
-                        // drop: לא מעבירים את המנה לשום מקום
+                        if (input.read(buf) < 0) break
                     }
                 }
-            } catch (_: Exception) {
-                // סגירה/ניתוק — יציאה שקטה
-            }
+            } catch (_: Exception) {}
+        }.also { it.isDaemon = true; it.start() }
+    }
+
+    /** סינון: קריאת שאילתת DNS, החלטה, וכתיבת תשובה חזרה. */
+    private fun startFilterReader(fd: ParcelFileDescriptor) {
+        val dns = DnsFilter(this, this)
+        reader = Thread {
+            val buf = ByteArray(32767)
+            try {
+                FileInputStream(fd.fileDescriptor).use { input ->
+                    FileOutputStream(fd.fileDescriptor).use { output ->
+                        while (!Thread.currentThread().isInterrupted) {
+                            val n = input.read(buf)
+                            if (n < 0) break
+                            if (n == 0) continue
+                            val reply = dns.handle(buf, n)
+                            if (reply != null) output.write(reply)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
         }.also { it.isDaemon = true; it.start() }
     }
 

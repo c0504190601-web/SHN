@@ -57,4 +57,9 @@ class Prefs(ctx: Context) {
     var blockWholeDevice: Boolean
         get() = sp.getBoolean("fw_block_all", false)
         set(v) = sp.edit().putBoolean("fw_block_all", v).apply()
+
+    /** false = מצב חסימה לפי אפליקציה (3א); true = מצב סינון דומיינים (3ב). */
+    var filterMode: Boolean
+        get() = sp.getBoolean("fw_filter_mode", false)
+        set(v) = sp.edit().putBoolean("fw_filter_mode", v).apply()
 }
