@@ -381,36 +381,55 @@ private fun DomainEditor(title: String, items: List<String>, onAdd: (String) -> 
     }
 }
 
-private data class Cat(val title: String, val phase: String, val items: List<String>, val active: Boolean)
-
 @Composable
 private fun RestrictionsTab() {
-    val cats = listOf(
-        Cat("ניהול אפליקציות", "שלב 2", listOf("הסתרה", "השעיה", "מניעת הסרה", "הצגה ב-Launcher", "חסימת דפדפן פנימי"), false),
-        Cat("רשת וסינון", "שלב 3", listOf("חסימת אינטרנט לכל אפליקציה", "רשימת דומיינים", "סינון DNS", "חומת אש VPN"), false),
-        Cat("הגבלות מערכת", "שלב 4", listOf("מצלמה", "צילום מסך", "USB", "Bluetooth / Wi-Fi", "Play Store", "איפוס יצרן", "מצב בטוח", "ועוד ~30 מתגים"), false),
-        Cat("קיוסק ו-Launcher", "שלב 4", listOf("מסך בית ייעודי", "חסימת יציאה", "מצב תחזוקה", "הפעלה לאחר אתחול"), false),
-        Cat("שליטה מרחוק", "שלב 5", listOf("רישום לשרת", "סנכרון דו-כיווני", "הסתרת אייקון מרחוק", "יומן מרחוק"), false),
-    )
-    Text(
-        "מפת היכולות לפי קטגוריות. כל קטגוריה תיפתח למסך מלא בשלב שלה.",
-        color = TextMuted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 4.dp)
-    )
-    cats.forEach { c ->
+    val ctx = LocalContext.current
+    val mgr = remember { com.kdroid.filter.restrictions.RestrictionsManager(ctx) }
+    var refresh by remember { mutableStateOf(0) }
+    val isDO = remember(refresh) { mgr.isDeviceOwner() }
+    val groups = remember { com.kdroid.filter.restrictions.RestrictionsManager.all().groupBy { it.group } }
+
+    if (!isDO) {
         KCard {
-            Row(
-                Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(c.title, color = NeonCyan, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text(c.phase, color = NeonAmber, fontSize = 12.sp)
-            }
-            Spacer(Modifier.height(6.dp))
-            c.items.forEach {
-                Text("•  $it", color = TextPrimary, fontSize = 13.sp, modifier = Modifier.padding(vertical = 1.dp))
-            }
-            Text("בפיתוח", color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+            Text(
+                "הגבלות המערכת דורשות Device Owner פעיל. הפעל אותו בלשונית 'לוח בקרה'. " +
+                    "המתגים מושבתים עד אז.",
+                color = NeonAmber, fontSize = 13.sp
+            )
         }
+    }
+
+    groups.forEach { (group, defs) ->
+        KCard(group) {
+            defs.forEach { def ->
+                var msg by remember(refresh) { mutableStateOf<String?>(null) }
+                val applied = remember(refresh) { mgr.isApplied(def) }
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(def.title, color = TextPrimary, fontSize = 14.sp)
+                        msg?.let { Text(it, color = NeonAmber, fontSize = 11.sp) }
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = applied,
+                        enabled = isDO,
+                        onCheckedChange = { on ->
+                            val r = mgr.apply(def, on)
+                            if (!r.ok) msg = r.message
+                            refresh++
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    KCard("קיוסק, אתחול ותחזוקה") {
+        Text("Launcher ייעודי, הפעלה לאחר אתחול ומצב תחזוקה — שלב 4ב, בפיתוח.",
+            color = TextMuted, fontSize = 12.sp)
     }
 }
 
