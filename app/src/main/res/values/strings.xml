@@ -1,1 +1,5 @@
-<resources><string name="app_name">Kiosk MDM</string><string name="admin_desc">Kiosk device administrator</string></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">K-Droid Filter</string>
+    <string name="admin_desc">מנהל מכשיר של K-Droid Filter. נדרש לאכיפת מדיניות ההגבלות.</string>
+</resources>

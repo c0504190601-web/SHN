@@ -1,1 +1,0 @@
-package com.kdroid.filter; public class AdminReceiver extends android.app.admin.DeviceAdminReceiver {}
