@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -55,6 +56,7 @@ private enum class Filter(val label: String) {
     ALL("הכל"), MANAGED("מנוהלות"), HOME("במסך הבית"), PENDING("ממתינות לאישור")
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppsScreen() {
     val ctx = LocalContext.current
@@ -138,6 +140,7 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     ) { Text(label, color = c, fontSize = 12.sp) }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppRow(st: AppPolicyState, mgr: AppManager, onChanged: () -> Unit) {
     val ctx = LocalContext.current
