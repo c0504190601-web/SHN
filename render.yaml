@@ -5,6 +5,7 @@ services:
     name: nativ-server
     runtime: node
     plan: free
+    region: frankfurt
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
@@ -13,7 +14,7 @@ services:
       - key: DATABASE_URL
         sync: false          # הדבק את מחרוזת החיבור מ-Neon
       - key: ADMIN_PASSWORD
-        sync: false          # בחר סיסמת מנהל חזקה
+        generateValue: true  # נוצרת אוטומטית; רואים אותה ב-Render ← Environment
       - key: ADMIN_USERNAME
         value: admin
       - key: JWT_SECRET
