@@ -3,6 +3,7 @@ package com.kdroid.filter.sync
 import android.content.Context
 import android.os.Build
 import com.kdroid.filter.filter.DomainStore
+import com.kdroid.filter.filter.MapsFilter
 import com.kdroid.filter.firewall.FirewallController
 import com.kdroid.filter.kiosk.KioskController
 import com.kdroid.filter.log.EventLog
@@ -37,11 +38,17 @@ object PolicyMapper {
             .put("blocked", JSONArray(ds.blocked().toList()))
             .put("allowed", JSONArray(ds.allowed().toList()))
 
+        val mf = MapsFilter(ctx)
+        val maps = JSONObject()
+            .put("enabled", mf.enabled)
+            .put("extra", JSONArray(mf.extra().toList()))
+
         return JSONObject()
             .put("restrictions", restrictions)
             .put("firewall", firewall)
             .put("kiosk", kiosk)
             .put("domains", domains)
+            .put("mapsFilter", maps)
     }
 
     /** מחיל מדיניות שהתקבלה מהשרת על המכשיר. */
@@ -83,6 +90,13 @@ object PolicyMapper {
             runCatching { ds.listMode = DomainStore.ListMode.valueOf(d.optString("mode", "BLOCK")) }
             ds.setBlockedAll(toList(d.optJSONArray("blocked")))
             ds.setAllowedAll(toList(d.optJSONArray("allowed")))
+        }
+
+        // סינון גוגל מפות
+        policy.optJSONObject("mapsFilter")?.let { m ->
+            val mf = MapsFilter(ctx)
+            mf.enabled = m.optBoolean("enabled", mf.enabled)
+            mf.setExtraAll(toList(m.optJSONArray("extra")))
         }
 
         EventLog.info(ctx, "Sync", "מדיניות מהשרת הוחלה")

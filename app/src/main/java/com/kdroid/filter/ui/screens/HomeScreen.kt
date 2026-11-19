@@ -400,6 +400,8 @@ private fun FilteringTab() {
         Text("שרת DNS במעלה הזרם: ${store.upstreamDns}", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
     }
 
+    MapsFilterCard()
+
     DomainEditor(
         title = "דומיינים חסומים",
         items = remember(refresh) { store.blocked().toList() },
@@ -420,6 +422,84 @@ private fun FilteringTab() {
             color = TextMuted, fontSize = 12.sp
         )
     }
+}
+
+/** סינון תמונות וסרטונים בגוגל מפות. */
+@Composable
+private fun MapsFilterCard() {
+    val ctx = LocalContext.current
+    val maps = remember { com.kdroid.filter.filter.MapsFilter(ctx) }
+    val fw = remember { com.kdroid.filter.firewall.FirewallController(ctx) }
+    var refresh by remember { mutableStateOf(0) }
+    val on = remember(refresh) { maps.enabled }
+    val ready = remember(refresh) { fw.isRunning() && fw.filterMode() }
+    val installed = remember {
+        com.kdroid.filter.filter.MapsFilter.PACKAGES.any {
+            runCatching { ctx.packageManager.getApplicationInfo(it, 0) }.isSuccess
+        }
+    }
+
+    KCard("סינון גוגל מפות") {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("חסימת תמונות וסרטונים", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    when {
+                        !on -> "כבוי"
+                        ready -> "פעיל — תמונות, סרטונים ו-Street View חסומים"
+                        else -> "מופעל, אך ממתין למצב 'סינון דומיינים'"
+                    },
+                    color = when { !on -> TextMuted; ready -> NeonGreen; else -> NeonAmber }, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = on,
+                onCheckedChange = {
+                    maps.enabled = it
+                    EventLog.info(ctx, "Maps", if (it) "סינון גוגל מפות הופעל" else "סינון גוגל מפות כובה")
+                    refresh++
+                }
+            )
+        }
+        Text(
+            "המפה, החיפוש והניווט ממשיכים לעבוד. ללא Root. " +
+                (if (android.os.Build.VERSION.SDK_INT >= 29) "חל על גוגל מפות בלבד."
+                 else "באנדרואיד מתחת ל-10 החסימה חלה על כל המכשיר (גם תמונות Google באפליקציות אחרות)."),
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+        if (!installed) Text("גוגל מפות לא מותקנת במכשיר.", color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+        if (on && !ready) {
+            Text(
+                "הסינון עובד דרך חומת האש במצב 'סינון דומיינים'. במצב 'חסימה לפי אפליקציה' גוגל מפות עוקפת את המנהרה.",
+                color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+            )
+            OutlinedButton(
+                onClick = {
+                    fw.setFilterMode(true)
+                    if (!fw.isRunning()) {
+                        if (fw.consentIntent() == null) fw.enable()
+                        else EventLog.warn(ctx, "Maps", "נדרש אישור VPN — הפעל את חומת האש בלשונית 'חומת אש'")
+                    }
+                    refresh++
+                },
+                modifier = Modifier.padding(top = 4.dp)
+            ) { Text("עבור למצב סינון דומיינים והפעל") }
+        }
+        if (on) Text(
+            "אחרי ההפעלה: עצור את גוגל מפות ונקה את המטמון שלה, כדי שתמונות שכבר נשמרו לא יוצגו.",
+            color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+    }
+
+    DomainEditor(
+        title = "גוגל מפות — כתובות נוספות לחסימה",
+        items = remember(refresh) { maps.extra().toList() },
+        onAdd = { maps.addExtra(it); refresh++ },
+        onRemove = { maps.removeExtra(it); refresh++ }
+    )
 }
 
 @Composable

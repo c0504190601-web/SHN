@@ -26,6 +26,7 @@ class DnsFilter(
 ) {
     private val store = DomainStore(ctx)
     private val appStore = AppPolicyStore(ctx)
+    private val maps = MapsFilter(ctx)
     private val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     /** מקבל מנת IPv4 גולמית; מחזיר מנת תשובה לכתיבה חזרה למנהרה, או null (drop). */
@@ -62,6 +63,8 @@ class DnsFilter(
     private fun decide(host: String, uid: Int): Boolean {
         // מיפוי אפליקציה (אם זמין): אפליקציה חסומה לרשת ⇒ אין רזולוציה.
         val pkgs = if (uid > 0) runCatching { ctx.packageManager.getPackagesForUid(uid) }.getOrNull() else null
+        // סינון גוגל מפות: לפי אפליקציה כשהזיהוי זמין (Android 10+), אחרת לכל המכשיר.
+        if (maps.blocks(host) && (pkgs.isNullOrEmpty() || maps.isMapsApp(pkgs))) return false
         if (pkgs != null && pkgs.isNotEmpty()) {
             val anyAllowed = pkgs.any { appStore.isNetAllowed(it) }
             if (!anyAllowed) return false

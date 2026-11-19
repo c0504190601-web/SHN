@@ -83,6 +83,8 @@ function defPolicy(p) {
   p.firewall = p.firewall || { enabled: false, blockWholeDevice: false, filterMode: false };
   p.kiosk = p.kiosk || { enabled: false };
   p.domains = p.domains || { mode: 'BLOCK', blocked: [], allowed: [] };
+  p.mapsFilter = p.mapsFilter || { enabled: false, extra: [] };
+  p.mapsFilter.extra = p.mapsFilter.extra || [];
   return p;
 }
 
@@ -123,6 +125,15 @@ function renderDevice() {
     <div id="blockedTags">${tags('blocked')}</div>
     <h4>דומיינים מותרים</h4><div class="grid2"><input type="text" id="addAllowed" placeholder="example.com"><button onclick="addDom('allowed')">הוסף</button></div>
     <div id="allowedTags">${tags('allowed')}</div>
+  </div>`;
+
+  // סינון גוגל מפות
+  h += `<div class="card"><h3>סינון גוגל מפות</h3>
+    <div class="row"><span>חסימת תמונות, סרטונים ו-Street View בגוגל מפות</span>${sw(pol.mapsFilter.enabled, "tgl('mapsFilter.enabled')")}</div>
+    ${pol.mapsFilter.enabled && !pol.firewall.filterMode ? '<div class="muted" style="color:var(--amber,#f5b942)">פועל רק כשחומת האש במצב סינון דומיינים — הפעל את המתג בכרטיס "חומת אש".</div>' : ''}
+    <div class="muted">המפה והניווט ממשיכים לעבוד. באנדרואיד מתחת ל-10 החסימה חלה על כל המכשיר.</div>
+    <h4>כתובות נוספות לחסימה</h4><div class="grid2"><input type="text" id="addMapsExtra" placeholder="example.com"><button onclick="addMapsExtra()">הוסף</button></div>
+    <div>${(pol.mapsFilter.extra).map((d, i) => `<span class="tag"><b onclick="rmMapsExtra(${i})">✕</b>${d}</span>`).join('') || '<span class="muted">אין</span>'}</div>
   </div>`;
 
   // קיוסק
@@ -168,6 +179,12 @@ function addDom(which) {
   const v = inp.value.trim().toLowerCase().replace(/^www\./, '');
   if (v) { CUR.policy.domains[which] = CUR.policy.domains[which] || []; CUR.policy.domains[which].push(v); renderDevice(); }
 }
+function addMapsExtra() {
+  const v = document.getElementById('addMapsExtra').value.trim().toLowerCase()
+    .replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^\*?\./, '');
+  if (v) { CUR.policy.mapsFilter.extra.push(v); renderDevice(); }
+}
+function rmMapsExtra(i) { CUR.policy.mapsFilter.extra.splice(i, 1); renderDevice(); }
 function rmDom(which, i) { CUR.policy.domains[which].splice(i, 1); renderDevice(); }
 
 async function savePolicy() {
