@@ -28,6 +28,9 @@ class BootReceiver : BroadcastReceiver() {
             }
         }
 
+        // שרת: רישום (אם עדיין אין מספר) וסנכרון — ירוץ לבד ברגע שיש אינטרנט
+        if (a == Intent.ACTION_BOOT_COMPLETED) runCatching { com.nativ.filter.sync.SyncScheduler.now(context) }
+
         // קיוסק: רענון רשימת האפליקציות המותרות. אם האפליקציה היא HOME, המערכת תפתח אותה לבד.
         val kiosk = KioskController(context)
         if (prefs.kioskEnabled) {

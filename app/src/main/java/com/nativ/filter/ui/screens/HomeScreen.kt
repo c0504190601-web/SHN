@@ -257,8 +257,18 @@ private fun ServerCard(refreshKey: Int, onChanged: () -> Unit) {
                 color = NeonAmber, fontSize = 13.sp
             )
             else -> {
-                Text("מתחבר לשרת ומקבל מספר מכשיר…", color = NeonAmber, fontSize = 13.sp)
-                Text("השרת יכול לקחת עד דקה להתעורר. נדרש חיבור לאינטרנט.", color = TextMuted, fontSize = 12.sp)
+                val online = remember(refreshKey, msg) {
+                    val cm = ctx.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                    cm.getNetworkCapabilities(cm.activeNetwork)
+                        ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+                }
+                if (online) {
+                    Text("מתחבר לשרת ומקבל מספר מכשיר…", color = NeonAmber, fontSize = 13.sp)
+                    Text("השרת יכול לקחת עד דקה להתעורר.", color = TextMuted, fontSize = 12.sp)
+                } else {
+                    Text("ממתין לחיבור לאינטרנט", color = NeonAmber, fontSize = 13.sp)
+                    Text("אין צורך לעשות דבר — בפעם הראשונה שיהיה אינטרנט המכשיר יקבל מספר לבד.", color = TextMuted, fontSize = 12.sp)
+                }
                 OutlinedButton(
                     onClick = { com.nativ.filter.sync.SyncScheduler.now(ctx); msg = "מנסה שוב…" },
                     modifier = Modifier.padding(top = 6.dp)

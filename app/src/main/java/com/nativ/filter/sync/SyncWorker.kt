@@ -16,13 +16,17 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
         if (!prefs.isEnrolled) {
             val dpm = applicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
             if (!dpm.isDeviceOwnerApp(applicationContext.packageName)) return Result.success()
-            val r = client.enroll(prefs.serverUrl ?: Prefs.DEFAULT_SERVER_URL)
-            if (!r.ok) return Result.retry()
+            // נעילה: שתי משימות שרצות יחד (מיידית + תקופתית) לא יקבלו שני מספרים
+            val ok = synchronized(ENROLL_LOCK) {
+                prefs.isEnrolled || client.enroll(prefs.serverUrl ?: Prefs.DEFAULT_SERVER_URL).ok
+            }
+            if (!ok) return Result.retry()
         }
         return if (client.sync()) Result.success() else Result.retry()
     }
 
     companion object {
         const val NAME = "nativ_sync"
+        private val ENROLL_LOCK = Any()
     }
 }
