@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import { adminRouter } from './routes/admin.js';
 import { deviceRouter } from './routes/device.js';
 import { ensureSchema } from './initSchema.js';
+import { pool } from './db.js';
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +18,12 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '1mb' }));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+// בדיקת תקינות: גם השרת וגם החיבור למסד הנתונים
+app.get('/api/health', async (_req, res) => {
+  let db = false;
+  try { await pool.query('SELECT 1'); db = true; } catch {}
+  res.json({ ok: true, db, adminConfigured: !!process.env.ADMIN_PASSWORD });
+});
 
 app.use('/api', adminRouter);
 app.use('/api/device', deviceRouter);
@@ -29,6 +35,9 @@ app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: 'שגיאת שרת' });
 });
+
+// לא מפילים את השרת על שגיאה שלא נתפסה — רק רושמים ביומן
+process.on('unhandledRejection', (e) => console.error('unhandledRejection:', e));
 
 const port = process.env.PORT || 8080;
 

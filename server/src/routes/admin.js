@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { asyncRouter } from '../asyncRouter.js';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { q } from '../db.js';
 import { signAdmin, requireAdmin } from '../auth.js';
 
-export const adminRouter = Router();
+export const adminRouter = asyncRouter();
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20 });
 

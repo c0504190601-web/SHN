@@ -1,10 +1,10 @@
-import { Router } from 'express';
+import { asyncRouter } from '../asyncRouter.js';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { q } from '../db.js';
 import { requireDevice } from '../auth.js';
 
-export const deviceRouter = Router();
+export const deviceRouter = asyncRouter();
 
 const enrollLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 

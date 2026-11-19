@@ -2,12 +2,13 @@
 # Render ← New ← Blueprint ← חיבור מאגר SHN. ממלאים DATABASE_URL (מ-Neon) ו-ADMIN_PASSWORD.
 services:
   - type: web
-    name: kdroid-server
+    name: nativ-server
     runtime: node
     plan: free
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
         sync: false          # הדבק את מחרוזת החיבור מ-Neon
