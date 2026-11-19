@@ -19,7 +19,16 @@ adminRouter.post('/auth/login', loginLimiter, async (req, res) => {
   res.json({ token: signAdmin(r.rows[0]), username: r.rows[0].username });
 });
 
-/** קישור מכשיר לחשבון לפי קוד חד-פעמי. */
+/** שינוי שם למכשיר (לנוחות בלבד — הזיהוי הוא לפי המספר). */
+adminRouter.put('/devices/:id/name', requireAdmin, async (req, res) => {
+  const d = await ownDevice(req.admin.id, req.params.id);
+  if (!d) return res.status(404).json({ error: 'מכשיר לא נמצא' });
+  const name = String(req.body?.name || '').trim().slice(0, 80) || null;
+  await q('UPDATE devices SET name=$2 WHERE id=$1', [d.id, name]);
+  res.json({ ok: true });
+});
+
+/** קישור מכשיר לחשבון לפי קוד חד-פעמי (לתאימות לאחור). */
 adminRouter.post('/devices/link', requireAdmin, async (req, res) => {
   const { code, name } = req.body || {};
   const r = await q('SELECT id FROM devices WHERE link_code=$1', [code]);
@@ -34,7 +43,7 @@ adminRouter.get('/devices', requireAdmin, async (req, res) => {
   const r = await q(
     `SELECT id, name, model, android, device_owner, firewall_on, policy_version,
             applied_version, last_seen,
-            (now() - last_seen < interval '2 minutes') AS online
+            (now() - last_seen < interval '20 minutes') AS online
      FROM devices WHERE admin_id=$1 ORDER BY id`,
     [req.admin.id]
   );

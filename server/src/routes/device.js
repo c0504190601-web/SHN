@@ -9,21 +9,22 @@ export const deviceRouter = asyncRouter();
 const enrollLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 });
 
 function rnd(n) { return crypto.randomBytes(n).toString('hex'); }
-function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
-/** רישום מכשיר חדש — מקבל מזהה (מ-10001), אסימון וקוד קישור חד-פעמי. */
+/**
+ * רישום מכשיר חדש — מקבל מספר מכשיר רץ (100, 101, ...) ואסימון.
+ * המכשיר משויך אוטומטית למנהל, כך שאין צורך בקוד קישור: מוצאים אותו באתר לפי המספר.
+ */
 deviceRouter.post('/enroll', enrollLimiter, async (req, res) => {
   const token = rnd(24);
-  const link = code6();
-  const { model = null, android = null } = req.body || {};
+  const { model = null, android = null, deviceOwner = false } = req.body || {};
   const r = await q(
-    `INSERT INTO devices (token, link_code, model, android, last_seen)
-     VALUES ($1,$2,$3,$4, now()) RETURNING id`,
-    [token, link, model, android]
+    `INSERT INTO devices (token, admin_id, model, android, device_owner, last_seen)
+     VALUES ($1, (SELECT id FROM admins ORDER BY id LIMIT 1), $2, $3, $4, now()) RETURNING id`,
+    [token, model, android, !!deviceOwner]
   );
   const id = r.rows[0].id;
   await q(`INSERT INTO events (device_id, source, level, message) VALUES ($1,'device','INFO','המכשיר נרשם')`, [id]);
-  res.json({ deviceId: id, token, linkCode: link });
+  res.json({ deviceId: id, token });
 });
 
 /** דיווח מצב מכשיר. */

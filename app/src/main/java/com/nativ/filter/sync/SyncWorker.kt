@@ -12,8 +12,10 @@ class SyncWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
     override fun doWork(): Result {
         val prefs = Prefs(applicationContext)
         val client = SyncClient(applicationContext)
-        // עדיין לא רשום: נרשם אוטומטית לשרת ברירת המחדל
+        // עדיין לא רשום: נרשם אוטומטית — רק כשהאפליקציה כבר Device Owner
         if (!prefs.isEnrolled) {
+            val dpm = applicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
+            if (!dpm.isDeviceOwnerApp(applicationContext.packageName)) return Result.success()
             val r = client.enroll(prefs.serverUrl ?: Prefs.DEFAULT_SERVER_URL)
             if (!r.ok) return Result.retry()
         }

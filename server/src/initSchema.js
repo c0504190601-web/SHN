@@ -20,10 +20,18 @@ export async function ensureSchema() {
     console.warn('ADMIN_PASSWORD לא הוגדר — לא נוצר מנהל. הגדר אותו ואתחל מחדש.');
     return;
   }
+  // מספור מכשירים מ-100 (מתקן מסד שנוצר עם רצף ישן, כל עוד אין בו מכשירים)
+  const cnt = await q('SELECT count(*)::int AS n FROM devices');
+  if (cnt.rows[0].n === 0) {
+    await q('ALTER SEQUENCE device_number_seq MINVALUE 100 RESTART WITH 100');
+  }
+
   const existing = await q('SELECT id FROM admins WHERE username=$1', [username]);
   if (existing.rowCount === 0) {
     const hash = await bcrypt.hash(password, 12);
     await q('INSERT INTO admins (username, password) VALUES ($1,$2)', [username, hash]);
     console.log(`נוצר מנהל ראשוני: ${username}`);
   }
+  // כל מכשיר שעוד לא משויך — שייך למנהל (יש מנהל אחד)
+  await q('UPDATE devices SET admin_id=(SELECT id FROM admins ORDER BY id LIMIT 1) WHERE admin_id IS NULL');
 }

@@ -47,35 +47,45 @@ async function doLogin() {
   } catch (e) { document.getElementById('loginErr').textContent = e.message; }
 }
 
+let DEVICES = [];
+
 async function showDevices() {
   show('view-devices');
   try {
     const d = await api('/devices');
-    const el = document.getElementById('deviceList');
-    el.innerHTML = d.devices.length ? '' : '<div class="muted">אין מכשירים מקושרים עדיין.</div>';
-    d.devices.forEach(dev => {
-      const div = document.createElement('div');
-      div.className = 'devitem';
-      div.onclick = () => openDevice(dev.id);
-      div.innerHTML = `<div><b>${dev.name || 'מכשיר'} · #${dev.id}</b>
-        <div class="muted">${dev.model || ''} ${dev.android ? '· Android ' + dev.android : ''}</div></div>
-        <span class="chip ${dev.online ? 'on' : 'off'}">${dev.online ? 'מחובר' : 'לא מחובר'}</span>`;
-      el.appendChild(div);
-    });
+    DEVICES = d.devices;
+    renderDeviceList();
   } catch (e) {
     if (String(e.message).includes('אימות') || String(e.message).includes('אסימון')) logout();
   }
 }
 
-async function linkDevice() {
-  const code = document.getElementById('linkCode').value.trim();
-  const name = document.getElementById('linkName').value.trim();
-  try {
-    await api('/devices/link', { method: 'POST', body: JSON.stringify({ code, name }) });
-    document.getElementById('linkCode').value = ''; document.getElementById('linkName').value = '';
-    showDevices();
-  } catch (e) { document.getElementById('linkErr').textContent = e.message; }
+function openByNumber() {
+  const n = document.getElementById('devNum').value.trim();
+  const err = document.getElementById('numErr');
+  err.textContent = '';
+  if (!/^\d+$/.test(n)) { err.textContent = 'הזן מספר מכשיר'; return; }
+  openDevice(n).catch(() => { show('view-devices'); err.textContent = 'מכשיר ' + n + ' לא נמצא'; });
 }
+
+function renderDeviceList() {
+  const f = (document.getElementById('devFilter')?.value || '').trim().toLowerCase();
+  const list = DEVICES.filter(dev => !f || String(dev.id).includes(f) || (dev.name || '').toLowerCase().includes(f));
+  {
+    const el = document.getElementById('deviceList');
+    el.innerHTML = list.length ? '' : '<div class="muted">' + (DEVICES.length ? 'לא נמצאו מכשירים.' : 'אין מכשירים עדיין. מכשיר נרשם לבד ברגע שמפעילים בו הרשאת ניהול.') + '</div>';
+    list.forEach(dev => {
+      const div = document.createElement('div');
+      div.className = 'devitem';
+      div.onclick = () => openDevice(dev.id);
+      div.innerHTML = `<div><b>#${dev.id}</b> ${dev.name ? '· ' + dev.name : ''}
+        <div class="muted">${dev.model || ''} ${dev.android ? '· Android ' + dev.android : ''}</div></div>
+        <span class="chip ${dev.online ? 'on' : 'off'}">${dev.online ? 'מחובר' : 'לא מחובר'}</span>`;
+      el.appendChild(div);
+    });
+  }
+}
+
 
 function defPolicy(p) {
   p = p || {};
@@ -102,7 +112,9 @@ function sw(on, onclick) {
 
 function renderDevice() {
   const d = CUR, pol = d.policy;
-  let h = `<div class="card"><h3>${d.name || 'מכשיר'} · #${d.id}</h3>
+  let h = `<div class="card"><h3>מכשיר #${d.id}${d.name ? ' · ' + d.name : ''}</h3>
+    <div class="grid2"><input type="text" id="devName" placeholder="שם למכשיר (לא חובה)" value="${(d.name || '').replace(/"/g, '&quot;')}">
+      <button class="ghost" onclick="saveName()">שמור שם</button></div>
     <div class="muted">${d.model || ''} ${d.android ? '· Android ' + d.android : ''}</div>
     <div class="row"><span>Device Owner</span><span class="chip ${d.device_owner ? 'on' : 'off'}">${d.device_owner ? 'פעיל' : 'לא פעיל'}</span></div>
     <div class="row"><span>חומת אש</span><span class="chip ${d.firewall_on ? 'on' : 'off'}">${d.firewall_on ? 'פעילה' : 'כבויה'}</span></div>
@@ -186,6 +198,12 @@ function addMapsExtra() {
 }
 function rmMapsExtra(i) { CUR.policy.mapsFilter.extra.splice(i, 1); renderDevice(); }
 function rmDom(which, i) { CUR.policy.domains[which].splice(i, 1); renderDevice(); }
+
+async function saveName() {
+  const name = document.getElementById('devName').value.trim();
+  try { await api('/devices/' + CUR.id + '/name', { method: 'PUT', body: JSON.stringify({ name }) }); CUR.name = name; renderDevice(); }
+  catch (e) { alert(e.message); }
+}
 
 async function savePolicy() {
   try {

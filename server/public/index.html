@@ -26,16 +26,18 @@
 <!-- רשימת מכשירים -->
 <div class="container hidden" id="view-devices">
   <div class="card">
-    <h3>קישור מכשיר חדש</h3>
+    <h3>כניסה למכשיר לפי מספר</h3>
+    <div class="muted">המספר מופיע באפליקציה במכשיר, בראש המסך.</div>
     <div class="grid2">
-      <input type="text" id="linkCode" placeholder="קוד קישור מהמכשיר">
-      <input type="text" id="linkName" placeholder="שם למכשיר (לא חובה)">
+      <input type="text" id="devNum" inputmode="numeric" placeholder="מספר מכשיר, למשל 100"
+             onkeydown="if(event.key==='Enter')openByNumber()">
+      <button onclick="openByNumber()">כניסה</button>
     </div>
-    <button onclick="linkDevice()">קשר מכשיר</button>
-    <span class="err" id="linkErr"></span>
+    <span class="err" id="numErr"></span>
   </div>
   <div class="card">
-    <h3>המכשירים שלי</h3>
+    <h3>כל המכשירים</h3>
+    <input type="text" id="devFilter" placeholder="חיפוש לפי מספר או שם" oninput="renderDeviceList()">
     <div id="deviceList"></div>
   </div>
 </div>

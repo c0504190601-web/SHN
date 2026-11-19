@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at  TIMESTAMPTZ DEFAULT now()
 );
 
--- רצף מזהי מכשירים החל מ-10001
-CREATE SEQUENCE IF NOT EXISTS device_number_seq START 10001;
+-- רצף מספרי מכשירים החל מ-100
+CREATE SEQUENCE IF NOT EXISTS device_number_seq START 100 MINVALUE 100;
 
 CREATE TABLE IF NOT EXISTS devices (
     id            INTEGER PRIMARY KEY DEFAULT nextval('device_number_seq'),

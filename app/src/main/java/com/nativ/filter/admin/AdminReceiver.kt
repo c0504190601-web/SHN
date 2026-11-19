@@ -9,6 +9,8 @@ class AdminReceiver : DeviceAdminReceiver() {
 
     override fun onEnabled(context: Context, intent: android.content.Intent) {
         EventLog.info(context, "AdminReceiver", "מנהל מכשיר הופעל")
+        // הרשאת ניהול התקבלה — נרשמים לשרת ומקבלים מספר מכשיר
+        com.nativ.filter.sync.SyncScheduler.now(context)
     }
 
     override fun onDisabled(context: Context, intent: android.content.Intent) {

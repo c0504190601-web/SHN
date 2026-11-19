@@ -116,6 +116,13 @@ private fun KioskHome(onMaintenance: () -> Unit) {
                     items(apps, key = { it.packageName }) { app -> KioskIcon(app) }
                 }
             }
+            // מספר המכשיר בפינה — לזיהוי באתר הניהול
+            val prefs = remember { com.nativ.filter.security.Prefs(ctx) }
+            if (prefs.isEnrolled) Text(
+                "מכשיר מס' ${prefs.deviceId}",
+                color = TextMuted, fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
+            )
             // כפתור תחזוקה בפינה
             Text(
                 "תחזוקה",

@@ -75,6 +75,9 @@ fun HomeScreen() {
             Text("נתיב נקי", color = NeonCyan, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(8.dp))
             Text("· ניהול", color = TextMuted, fontSize = 14.sp)
+            Spacer(Modifier.weight(1f))
+            val num = deviceNumberState()
+            if (num != null) Text("מכשיר מס' $num", color = NeonCyan, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         ScrollableTabRow(
             selectedTabIndex = tab,
@@ -133,19 +136,17 @@ private fun DashboardTab() {
         }
     }
 
+    ServerCard(refreshKey = refresh, onChanged = { refresh++ })
+
     KCard("מצב הגנה") {
         Text(
             if (isDO) "המכשיר מנוהל כ-Device Owner." else "המכשיר אינו Device Owner — חלק מההגבלות לא יחולו.",
             color = if (isDO) NeonGreen else NeonAmber, fontSize = 15.sp, fontWeight = FontWeight.Medium
         )
         Text("קוד מנהל: מוגדר", color = TextMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
-        Text("חומת אש: תופעל בשלב 3", color = TextMuted, fontSize = 13.sp)
-        Text("סנכרון לשרת: יתווסף בשלב 5", color = TextMuted, fontSize = 13.sp)
     }
 
     KCard("פרטי מכשיר") { info.forEach { (k, v) -> KeyValueRow(k, v) } }
-
-    ServerCard(refreshKey = refresh, onChanged = { refresh++ })
 
     if (!isDO) {
         KCard("הפעלת Device Owner") {
@@ -157,11 +158,11 @@ private fun DashboardTab() {
             Row {
                 OutlinedButton(onClick = { copy(ctx, owner.adbCommand) }) { Text("העתק פקודה") }
                 Spacer(Modifier.width(8.dp))
-                OutlinedButton(onClick = { refresh++ }) { Text("בדוק מצב") }
+                OutlinedButton(onClick = { refresh++; com.nativ.filter.sync.SyncScheduler.now(ctx) }) { Text("בדוק מצב") }
             }
             if (RootUtil.isSuPresent()) {
                 OutlinedButton(
-                    onClick = { activationMsg = owner.activateViaRoot().message; refresh++ },
+                    onClick = { activationMsg = owner.activateViaRoot().message; refresh++; com.nativ.filter.sync.SyncScheduler.now(ctx) },
                     modifier = Modifier.padding(top = 8.dp)
                 ) { Text("הפעל דרך Root") }
             }
@@ -216,45 +217,57 @@ private fun DiagnosticsTab() {
     }
 }
 
+/** מספר המכשיר מהשרת; מתעדכן לבד כשהרישום מסתיים. */
+@Composable
+private fun deviceNumberState(): String? {
+    val ctx = LocalContext.current
+    val prefs = remember { com.nativ.filter.security.Prefs(ctx) }
+    var num by remember { mutableStateOf(prefs.deviceId?.takeIf { prefs.isEnrolled }) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while (num == null) {
+            kotlinx.coroutines.delay(3000)
+            num = prefs.deviceId?.takeIf { prefs.isEnrolled }
+        }
+    }
+    return num
+}
+
 @Composable
 private fun ServerCard(refreshKey: Int, onChanged: () -> Unit) {
     val ctx = LocalContext.current
     val prefs = remember { com.nativ.filter.security.Prefs(ctx) }
+    val owner = remember { DeviceOwnerManager(ctx) }
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf(prefs.serverUrl ?: "") }
-    val enrolled = remember(refreshKey) { prefs.isEnrolled }
+    val num = deviceNumberState()
+    val isDO = remember(refreshKey) { owner.isDeviceOwner() }
     var msg by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    KCard("שרת ושליטה מרחוק") {
-        OutlinedTextField(
-            value = url, onValueChange = { url = it },
-            label = { Text("כתובת השרת (https://...)") }, singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (!enrolled) {
-            OutlinedButton(
-                enabled = !busy,
-                onClick = {
-                    busy = true; msg = "רושם..."
-                    scope.launch {
-                        val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                            com.nativ.filter.sync.SyncClient(ctx).enroll(url.trim())
-                        }
-                        msg = r.message; busy = false; onChanged()
-                    }
-                },
-                modifier = Modifier.padding(top = 6.dp)
-            ) { Text("רישום לשרת") }
-        } else {
-            KeyValueRow("מזהה מכשיר", prefs.deviceId ?: "—")
-            prefs.linkCode?.let {
-                Text("קוד קישור לאתר:", color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
-                Text(it, color = NeonCyan, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                Text("הזן קוד זה באתר הניהול כדי לשייך את המכשיר.", color = TextMuted, fontSize = 12.sp)
+    KCard("מספר מכשיר ושליטה מרחוק") {
+        when {
+            num != null -> {
+                Text(num, color = NeonCyan, fontSize = 44.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "זה מספר המכשיר באתר הניהול. כדי לשנות הגדרות מרחוק — נכנסים באתר למכשיר לפי המספר הזה.",
+                    color = TextMuted, fontSize = 12.sp
+                )
             }
+            !isDO -> Text(
+                "המספר יינתן אוטומטית מיד אחרי הפעלת הרשאת הניהול (Device Owner).",
+                color = NeonAmber, fontSize = 13.sp
+            )
+            else -> {
+                Text("מתחבר לשרת ומקבל מספר מכשיר…", color = NeonAmber, fontSize = 13.sp)
+                Text("השרת יכול לקחת עד דקה להתעורר. נדרש חיבור לאינטרנט.", color = TextMuted, fontSize = 12.sp)
+                OutlinedButton(
+                    onClick = { com.nativ.filter.sync.SyncScheduler.now(ctx); msg = "מנסה שוב…" },
+                    modifier = Modifier.padding(top = 6.dp)
+                ) { Text("נסה שוב") }
+            }
+        }
+        if (num != null) {
             val lastSync = if (prefs.lastSyncAt > 0)
-                java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date(prefs.lastSyncAt))
+                java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(java.util.Date(prefs.lastSyncAt))
             else "—"
             KeyValueRow("סנכרון אחרון", lastSync)
             Row(Modifier.padding(top = 6.dp)) {
@@ -269,14 +282,14 @@ private fun ServerCard(refreshKey: Int, onChanged: () -> Unit) {
                 }) { Text("סנכרן עכשיו") }
                 Spacer(Modifier.width(8.dp))
                 OutlinedButton(enabled = !busy, onClick = {
-                    busy = true; msg = "דוחף..."
+                    busy = true; msg = "שולח..."
                     scope.launch {
                         val ok = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                             com.nativ.filter.sync.SyncClient(ctx).pushLocal()
                         }
-                        msg = if (ok) "המצב נדחף לשרת" else "הדחיפה נכשלה"; busy = false
+                        msg = if (ok) "המצב נשלח לאתר" else "השליחה נכשלה"; busy = false
                     }
-                }) { Text("דחוף מצב נוכחי") }
+                }) { Text("שלח מצב נוכחי לאתר") }
             }
         }
         msg?.let { Text(it, color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
