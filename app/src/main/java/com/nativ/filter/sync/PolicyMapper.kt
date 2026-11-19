@@ -49,6 +49,7 @@ object PolicyMapper {
             .put("kiosk", kiosk)
             .put("domains", domains)
             .put("mapsFilter", maps)
+            .put("watermark", JSONObject().put("enabled", com.nativ.filter.watermark.WatermarkController.enabled(ctx)))
     }
 
     /** מחיל מדיניות שהתקבלה מהשרת על המכשיר. */
@@ -90,6 +91,12 @@ object PolicyMapper {
             runCatching { ds.listMode = DomainStore.ListMode.valueOf(d.optString("mode", "BLOCK")) }
             ds.setBlockedAll(toList(d.optJSONArray("blocked")))
             ds.setAllowedAll(toList(d.optJSONArray("allowed")))
+        }
+
+        // סמל כשרות על המסך
+        policy.optJSONObject("watermark")?.let { w ->
+            val wc = com.nativ.filter.watermark.WatermarkController
+            wc.setEnabled(ctx, w.optBoolean("enabled", wc.enabled(ctx)))
         }
 
         // סינון גוגל מפות

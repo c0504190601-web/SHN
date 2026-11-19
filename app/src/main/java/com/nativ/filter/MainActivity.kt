@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
         // חיבור אוטומטי לשרת (נרשם רק אחרי הפעלת Device Owner)
         com.nativ.filter.sync.SyncScheduler.now(this)
+        com.nativ.filter.watermark.WatermarkController.sync(this)
 
         // סדר פתיחה: קודם Device Owner, ורק אז קוד.
         fun initialPhase(): Phase = when {

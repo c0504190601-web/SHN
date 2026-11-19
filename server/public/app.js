@@ -93,6 +93,7 @@ function defPolicy(p) {
   p.firewall = p.firewall || { enabled: false, blockWholeDevice: false, filterMode: false };
   p.kiosk = p.kiosk || { enabled: false };
   p.domains = p.domains || { mode: 'BLOCK', blocked: [], allowed: [] };
+  p.watermark = p.watermark || { enabled: false };
   p.mapsFilter = p.mapsFilter || { enabled: false, extra: [] };
   p.mapsFilter.extra = p.mapsFilter.extra || [];
   return p;
@@ -137,6 +138,12 @@ function renderDevice() {
     <div id="blockedTags">${tags('blocked')}</div>
     <h4>דומיינים מותרים</h4><div class="grid2"><input type="text" id="addAllowed" placeholder="example.com"><button onclick="addDom('allowed')">הוסף</button></div>
     <div id="allowedTags">${tags('allowed')}</div>
+  </div>`;
+
+  // סמל כשרות
+  h += `<div class="card"><h3>סמל כשרות על המסך</h3>
+    <div class="row"><span>הצג סמל "כשר" קבוע במרכז המסך</span>${sw(pol.watermark.enabled, "tgl('watermark.enabled')")}</div>
+    <div class="muted">דורש פעם אחת במכשיר את ההרשאה "הצגה מעל אפליקציות אחרות".</div>
   </div>`;
 
   // סינון גוגל מפות

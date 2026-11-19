@@ -138,6 +138,8 @@ private fun DashboardTab() {
 
     ServerCard(refreshKey = refresh, onChanged = { refresh++ })
 
+    WatermarkCard()
+
     KCard("מצב הגנה") {
         Text(
             if (isDO) "המכשיר מנוהל כ-Device Owner." else "המכשיר אינו Device Owner — חלק מההגבלות לא יחולו.",
@@ -214,6 +216,67 @@ private fun DiagnosticsTab() {
             onClick = { IconVisibility.setHidden(ctx, !iconHidden); iconHidden = !iconHidden },
             modifier = Modifier.padding(top = 6.dp)
         ) { Text(if (iconHidden) "הצג אייקון (זמני)" else "הסתר אייקון (זמני)") }
+    }
+}
+
+/** סמל כשרות קבוע במרכז המסך. */
+@Composable
+private fun WatermarkCard() {
+    val ctx = LocalContext.current
+    val wc = com.nativ.filter.watermark.WatermarkController
+    var refresh by remember { mutableStateOf(0) }
+    val on = remember(refresh) { wc.enabled(ctx) }
+    // ההרשאה ניתנת במסך ההגדרות — בודקים שוב כשחוזרים לאפליקציה
+    var perm by remember { mutableStateOf(wc.hasPermission(ctx)) }
+    androidx.compose.runtime.LaunchedEffect(on) {
+        while (on && !perm) {
+            kotlinx.coroutines.delay(1500)
+            perm = wc.hasPermission(ctx)
+            if (perm) wc.sync(ctx)
+        }
+    }
+
+    KCard("סמל כשרות על המסך") {
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("הצג סמל קבוע במרכז המסך", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(
+                    when { !on -> "כבוי"; perm -> "מוצג"; else -> "ממתין להרשאה" },
+                    color = when { !on -> TextMuted; perm -> NeonGreen; else -> NeonAmber }, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = on,
+                onCheckedChange = { wc.setEnabled(ctx, it); refresh++ }
+            )
+        }
+        Text(
+            "סמל מגן חצי-שקוף עם \"כשר\". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.",
+            color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+        )
+        if (on && !perm) {
+            Text(
+                "נדרשת הרשאה חד-פעמית: \"הצגה מעל אפליקציות אחרות\".",
+                color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
+            )
+            Row(Modifier.padding(top = 4.dp)) {
+                OutlinedButton(onClick = { runCatching { ctx.startActivity(wc.permissionIntent(ctx)) } }) { Text("פתח הרשאה") }
+                if (RootUtil.isSuPresent()) {
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedButton(onClick = {
+                        if (wc.grantViaRoot(ctx)) { perm = wc.hasPermission(ctx); wc.sync(ctx) }
+                    }) { Text("אשר דרך Root") }
+                }
+            }
+            Text(
+                "או דרך ADB: adb shell appops set com.nativ.filter SYSTEM_ALERT_WINDOW allow",
+                color = TextMuted, fontSize = 11.sp, fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }
 
