@@ -10,6 +10,7 @@ public final class Policy {
  static boolean owner(Context c){return d(c).isDeviceOwnerApp(c.getPackageName());}
  static void r(DevicePolicyManager m,ComponentName a,String key,boolean on){try{if(on)m.addUserRestriction(a,key);else m.clearUserRestriction(a,key);}catch(Exception ignored){}}
  static void apply(Context c,String main){
+  MapsFilter.sync(c);
   if(!owner(c))return;DevicePolicyManager m=d(c);ComponentName a=cn(c);
   r(m,a,UserManager.DISALLOW_FACTORY_RESET,Prefs.opt(c,"reset",true));r(m,a,UserManager.DISALLOW_SAFE_BOOT,Prefs.opt(c,"safe",true));r(m,a,UserManager.DISALLOW_DEBUGGING_FEATURES,Prefs.opt(c,"adb",true));r(m,a,UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES,Prefs.opt(c,"install",true));
   if(Build.VERSION.SDK_INT>=26)r(m,a,UserManager.DISALLOW_INSTALL_APPS,Prefs.opt(c,"install",true));
