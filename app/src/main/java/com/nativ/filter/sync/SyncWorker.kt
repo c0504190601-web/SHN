@@ -10,8 +10,14 @@ import com.nativ.filter.security.Prefs
  */
 class SyncWorker(ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
     override fun doWork(): Result {
-        if (!Prefs(applicationContext).isEnrolled) return Result.success()
-        return if (SyncClient(applicationContext).sync()) Result.success() else Result.retry()
+        val prefs = Prefs(applicationContext)
+        val client = SyncClient(applicationContext)
+        // עדיין לא רשום: נרשם אוטומטית לשרת ברירת המחדל
+        if (!prefs.isEnrolled) {
+            val r = client.enroll(prefs.serverUrl ?: Prefs.DEFAULT_SERVER_URL)
+            if (!r.ok) return Result.retry()
+        }
+        return if (client.sync()) Result.success() else Result.retry()
     }
 
     companion object {

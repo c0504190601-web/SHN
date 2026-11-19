@@ -7,6 +7,10 @@ import android.content.SharedPreferences
  * אחסון מקומי. לא נשמר כאן קוד PIN גלוי — רק גיבוב ו-salt.
  */
 class Prefs(ctx: Context) {
+    companion object {
+        const val DEFAULT_SERVER_URL = "https://nativ-server.onrender.com"
+    }
+
     private val sp: SharedPreferences =
         ctx.getSharedPreferences("nativ_prefs", Context.MODE_PRIVATE)
 
@@ -69,8 +73,9 @@ class Prefs(ctx: Context) {
         set(v) = sp.edit().putBoolean("kiosk_enabled", v).apply()
 
     // --- שרת וסנכרון ---
+    /** כתובת השרת. ברירת מחדל: שרת הניהול של נתיב נקי, כך שאין צורך להזין כתובת ידנית. */
     var serverUrl: String?
-        get() = sp.getString("server_url", null)
+        get() = sp.getString("server_url", null)?.takeIf { it.isNotBlank() } ?: DEFAULT_SERVER_URL
         set(v) = sp.edit().putString("server_url", v).apply()
 
     var deviceToken: String?

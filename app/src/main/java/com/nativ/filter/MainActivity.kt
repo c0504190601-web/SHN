@@ -33,8 +33,16 @@ class MainActivity : ComponentActivity() {
         val prefs = Prefs(this)
         val owner = DeviceOwnerManager(this)
 
-        // תזמון סנכרון תקופתי אם המכשיר רשום לשרת
-        if (prefs.isEnrolled) {
+        // חיבור אוטומטי לשרת: רישום (אם צריך) + סנכרון מיידי, ואחר כך כל 15 דקות.
+        run {
+            val net = androidx.work.Constraints.Builder()
+                .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build()
+            androidx.work.WorkManager.getInstance(this).enqueueUniqueWork(
+                com.nativ.filter.sync.SyncWorker.NAME + "_now",
+                androidx.work.ExistingWorkPolicy.KEEP,
+                androidx.work.OneTimeWorkRequestBuilder<com.nativ.filter.sync.SyncWorker>()
+                    .setConstraints(net).build()
+            )
             val req = androidx.work.PeriodicWorkRequestBuilder<com.nativ.filter.sync.SyncWorker>(
                 15, java.util.concurrent.TimeUnit.MINUTES
             ).setConstraints(

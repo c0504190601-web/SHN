@@ -86,8 +86,9 @@ class SyncClient(private val ctx: Context) {
     private fun request(method: String, url: String, body: JSONObject?, token: String? = null, auth: Boolean = true): JSONObject? {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = method
-            connectTimeout = 10000
-            readTimeout = 15000
+            // השרת החינמי "נרדם" ומתעורר תוך עד דקה — לכן זמני המתנה ארוכים
+            connectTimeout = 30000
+            readTimeout = 70000
             if (auth && token != null) setRequestProperty("Authorization", "Bearer $token")
             if (body != null) {
                 doOutput = true
