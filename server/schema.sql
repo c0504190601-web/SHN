@@ -1,4 +1,4 @@
--- סכמת מסד הנתונים של K-Droid Filter
+-- סכמת מסד הנתונים של נתיב נקי
 
 CREATE TABLE IF NOT EXISTS admins (
     id          SERIAL PRIMARY KEY,

@@ -1,4 +1,4 @@
-# התקנה והפעלה — K-Droid Filter
+# התקנה והפעלה — נתיב נקי
 
 ## 1. התקנת ה-APK
 העבר את קובץ ה-APK למכשיר והתקן. לבדיקות אפשר להשתמש ב-APK שנבנה ב-GitHub Actions
@@ -12,7 +12,7 @@ Device Owner חייב מכשיר **נקי** — בלי חשבון Google ובל�
 2. חבר למחשב עם כבל.
 3. הרץ:
    ```
-   adb shell dpm set-device-owner com.kdroid.filter/.admin.AdminReceiver
+   adb shell dpm set-device-owner com.nativ.filter/.admin.AdminReceiver
    ```
 4. חזור לאפליקציה ולחץ "בדוק מצב". היא תאמת שההפעלה הצליחה.
 

@@ -1,4 +1,4 @@
-# K-Droid Filter
+# נתיב נקי
 
 מערכת סינון וניהול מכשירים (MDM) ל-Android 8+, בעברית RTL.
 אפליקציית Kotlin + Jetpack Compose, שרת Node.js ואתר ניהול.

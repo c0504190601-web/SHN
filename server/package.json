@@ -1,7 +1,7 @@
 {
-  "name": "kdroid-filter-server",
+  "name": "nativ-filter-server",
   "version": "1.0.0",
-  "description": "K-Droid Filter — שרת ניהול מרחוק",
+  "description": "נתיב נקי — שרת ניהול מרחוק",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

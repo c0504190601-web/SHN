@@ -1,4 +1,4 @@
-# K-Droid Filter — שרת ואתר ניהול
+# נתיב נקי — שרת ואתר ניהול
 
 שרת Node.js + PostgreSQL ואתר ניהול בעברית. מנהל יחיד, שליטה מרחוק על המכשירים.
 
@@ -20,7 +20,7 @@ npm start                # מריץ על הפורט שב-.env (ברירת מחד
 הרץ מאחורי Nginx עם TLS (Let's Encrypt), והשתמש ב-systemd או pm2:
 ```bash
 npm i -g pm2
-pm2 start src/index.js --name kdroid
+pm2 start src/index.js --name nativ
 pm2 save && pm2 startup
 ```
 
@@ -28,11 +28,11 @@ pm2 save && pm2 startup
 הפנה דומיין לשרת, ואז:
 ```nginx
 server {
-  server_name kdroid.example.com;
+  server_name nativ.example.com;
   location / { proxy_pass http://127.0.0.1:8080; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; }
 }
 ```
-ואז `certbot --nginx -d kdroid.example.com` לקבלת תעודת TLS.
+ואז `certbot --nginx -d nativ.example.com` לקבלת תעודת TLS.
 
 ## אבטחה
 - כל התקשורת חייבת לרוץ מעל HTTPS (TLS). אל תפתח את השרת ללא TLS.

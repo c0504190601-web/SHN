@@ -35,4 +35,4 @@ const port = process.env.PORT || 8080;
 // יצירת סכמה ומנהל ראשוני בעלייה (אידמפוטנטי), ואז הרצת השרת.
 ensureSchema()
   .catch((e) => console.error('אתחול סכמה נכשל:', e.message))
-  .finally(() => app.listen(port, () => console.log(`K-Droid Filter server על פורט ${port}`)));
+  .finally(() => app.listen(port, () => console.log(`נתיב נקי server על פורט ${port}`)));

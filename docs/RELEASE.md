@@ -1,20 +1,20 @@
-# בניית גרסת שחרור חתומה — K-Droid Filter
+# בניית גרסת שחרור חתומה — נתיב נקי
 
 ה-CI בונה כברירת מחדל APK מסוג **debug** (חתום במפתח debug, לבדיקות).
 לשחרור אמיתי נדרש APK חתום במפתח שלך.
 
 ## 1. יצירת מפתח חתימה (פעם אחת)
 ```
-keytool -genkeypair -v -keystore kdroid-release.jks \
-  -alias kdroid -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkeypair -v -keystore nativ-release.jks \
+  -alias nativ -keyalg RSA -keysize 2048 -validity 10000
 ```
 שמור את הקובץ ואת הסיסמאות במקום בטוח. **אובדן המפתח = אי אפשר לעדכן את האפליקציה.**
 
 ## 2. בנייה מקומית
 ```
-export KEYSTORE_PATH=/path/to/kdroid-release.jks
+export KEYSTORE_PATH=/path/to/nativ-release.jks
 export KEYSTORE_PASSWORD=...
-export KEY_ALIAS=kdroid
+export KEY_ALIAS=nativ
 export KEY_PASSWORD=...
 gradle assembleRelease
 ```

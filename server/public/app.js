@@ -1,5 +1,5 @@
 'use strict';
-let TOKEN = localStorage.getItem('kdroid_token') || null;
+let TOKEN = localStorage.getItem('nativ_token') || null;
 let CUR = null; // מכשיר נוכחי + policy
 
 // רשימת הגבלות — חייבת להתאים למזהים באפליקציה (RestrictionsManager)
@@ -41,7 +41,7 @@ async function doLogin() {
   const u = document.getElementById('u').value, p = document.getElementById('p').value;
   try {
     const d = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
-    TOKEN = d.token; localStorage.setItem('kdroid_token', TOKEN);
+    TOKEN = d.token; localStorage.setItem('nativ_token', TOKEN);
     document.getElementById('who').textContent = d.username;
     showDevices();
   } catch (e) { document.getElementById('loginErr').textContent = e.message; }
@@ -208,7 +208,7 @@ async function loadEvents(id) {
   } catch {}
 }
 
-function logout() { TOKEN = null; localStorage.removeItem('kdroid_token'); show('view-login'); }
+function logout() { TOKEN = null; localStorage.removeItem('nativ_token'); show('view-login'); }
 
 // אתחול
 if (TOKEN) showDevices(); else show('view-login');
