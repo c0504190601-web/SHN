@@ -48,6 +48,18 @@ class SyncClient(private val ctx: Context) {
         return try {
             request("POST", "$base/api/device/status", PolicyMapper.deviceStatus(ctx), token = token)
 
+            // רשימת האפליקציות (שמות + אייקונים) — רק כשהיא השתנתה מאז השליחה הקודמת
+            runCatching {
+                val sp = ctx.getSharedPreferences("nativ_sync", android.content.Context.MODE_PRIVATE)
+                val hash = com.nativ.filter.apps.AppRepository(ctx).installedApps()
+                    .joinToString("|") { it.packageName + ":" + it.label }.hashCode().toString()
+                if (sp.getString("apps_hash", null) != hash) {
+                    val body = JSONObject().put("apps", PolicyMapper.appCatalog(ctx))
+                    if (request("POST", "$base/api/device/apps", body, token = token) != null)
+                        sp.edit().putString("apps_hash", hash).apply()
+                }
+            }.onFailure { EventLog.warn(ctx, "Sync", "שליחת רשימת אפליקציות נכשלה: ${it.message}") }
+
             val applied = prefs.lastAppliedVersion
             val pulled = request("GET", "$base/api/device/sync?applied=$applied", null, token = token)
                 ?: return false

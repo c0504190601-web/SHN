@@ -59,6 +59,7 @@ async function ownDevice(adminId, id) {
 adminRouter.get('/devices/:id', requireAdmin, async (req, res) => {
   const d = await ownDevice(req.admin.id, req.params.id);
   if (!d) return res.status(404).json({ error: 'מכשיר לא נמצא' });
+  delete d.token; delete d.link_code; // סודות המכשיר לא נשלחים לדפדפן
   res.json({ device: d });
 });
 

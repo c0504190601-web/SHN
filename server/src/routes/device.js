@@ -29,14 +29,23 @@ deviceRouter.post('/enroll', enrollLimiter, async (req, res) => {
 
 /** דיווח מצב מכשיר. */
 deviceRouter.post('/status', requireDevice, async (req, res) => {
-  const { model, android, deviceOwner, firewallOn } = req.body || {};
+  const { model, android, deviceOwner, firewallOn, reported } = req.body || {};
   await q(
     `UPDATE devices SET model=COALESCE($2,model), android=COALESCE($3,android),
-       device_owner=COALESCE($4,device_owner), firewall_on=COALESCE($5,firewall_on), last_seen=now()
+       device_owner=COALESCE($4,device_owner), firewall_on=COALESCE($5,firewall_on), last_seen=now(),
+       reported=COALESCE($6,reported), reported_at=CASE WHEN $6::jsonb IS NULL THEN reported_at ELSE now() END
      WHERE id=$1`,
-    [req.device.id, model ?? null, android ?? null, deviceOwner ?? null, firewallOn ?? null]
+    [req.device.id, model ?? null, android ?? null, deviceOwner ?? null, firewallOn ?? null,
+     reported ? JSON.stringify(reported) : null]
   );
   res.json({ ok: true });
+});
+
+/** רשימת האפליקציות במכשיר (שמות ואייקונים) — נשלחת כשהרשימה משתנה. */
+deviceRouter.post('/apps', requireDevice, async (req, res) => {
+  const apps = Array.isArray(req.body?.apps) ? req.body.apps.slice(0, 500) : [];
+  await q('UPDATE devices SET apps=$2, last_seen=now() WHERE id=$1', [req.device.id, JSON.stringify(apps)]);
+  res.json({ ok: true, count: apps.length });
 });
 
 /** סנכרון: המכשיר מושך מדיניות ומדווח איזו גרסה הוחלה. */

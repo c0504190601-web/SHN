@@ -87,22 +87,42 @@ function renderDeviceList() {
 }
 
 
+// ===================== דף מכשיר — זהה לאפליקציה =====================
+const TABS = ['לוח בקרה', 'אפליקציות', 'חומת אש', 'סינון', 'אבחון', 'הגבלות', 'יומן'];
+let TAB = 0, POL = null, REP = {}, CAT = [], EVENTS = [];
+let APPQ = '', APPF = 'ALL', APPSYS = false, OPEN_APP = null, SAVE_T = null;
+
+const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clone = (o) => JSON.parse(JSON.stringify(o || {}));
+
 function defPolicy(p) {
   p = p || {};
   p.restrictions = p.restrictions || {};
-  p.firewall = p.firewall || { enabled: false, blockWholeDevice: false, filterMode: false };
-  p.kiosk = p.kiosk || { enabled: false };
-  p.domains = p.domains || { mode: 'BLOCK', blocked: [], allowed: [] };
-  p.watermark = p.watermark || { enabled: false };
-  p.mapsFilter = p.mapsFilter || { enabled: false, extra: [] };
+  p.firewall = Object.assign({ enabled: false, blockWholeDevice: false, filterMode: false }, p.firewall || {});
+  p.kiosk = Object.assign({ enabled: false }, p.kiosk || {});
+  p.domains = Object.assign({ mode: 'BLOCK', blocked: [], allowed: [] }, p.domains || {});
+  p.domains.blocked = p.domains.blocked || []; p.domains.allowed = p.domains.allowed || [];
+  p.watermark = Object.assign({ enabled: false }, p.watermark || {});
+  p.mapsFilter = Object.assign({ enabled: false, extra: [] }, p.mapsFilter || {});
   p.mapsFilter.extra = p.mapsFilter.extra || [];
+  p.icon = Object.assign({ hidden: false }, p.icon || {});
+  p.apps = p.apps || {};
   return p;
 }
 
 async function openDevice(id) {
   show('view-device');
+  document.getElementById('deviceBody').innerHTML = '<div class="card muted">טוען…</div>';
   const d = await api('/devices/' + id);
-  CUR = d.device; CUR.policy = defPolicy(CUR.policy);
+  CUR = d.device;
+  REP = CUR.reported || {};
+  CAT = Array.isArray(CUR.apps) ? CUR.apps : [];
+  // אם המכשיר כבר החיל את הגרסה האחרונה — מציגים את המצב שהוא דיווח (כולל שינויים שנעשו באפליקציה).
+  // אחרת — מציגים את השינויים מהאתר שעדיין ממתינים לסנכרון.
+  const synced = (CUR.applied_version || 0) >= (CUR.policy_version || 0) && REP.state;
+  POL = defPolicy(clone(synced ? REP.state : CUR.policy));
+  CUR.policy = POL;
+  TAB = 0; OPEN_APP = null;
   renderDevice();
   loadEvents(id);
 }
@@ -110,127 +130,292 @@ async function openDevice(id) {
 function sw(on, onclick) {
   return `<span class="sw ${on ? 'swon' : ''}" onclick="${onclick}"><span class="k"></span></span>`;
 }
+function toggleRow(title, sub, on, onclick) {
+  return `<div class="row"><div><div>${title}</div>${sub ? `<div class="muted">${sub}</div>` : ''}</div>${sw(on, onclick)}</div>`;
+}
 
 function renderDevice() {
-  const d = CUR, pol = d.policy;
-  let h = `<div class="card"><h3>מכשיר #${d.id}${d.name ? ' · ' + d.name : ''}</h3>
-    <div class="grid2"><input type="text" id="devName" placeholder="שם למכשיר (לא חובה)" value="${(d.name || '').replace(/"/g, '&quot;')}">
-      <button class="ghost" onclick="saveName()">שמור שם</button></div>
-    <div class="muted">${d.model || ''} ${d.android ? '· Android ' + d.android : ''}</div>
-    <div class="row"><span>Device Owner</span><span class="chip ${d.device_owner ? 'on' : 'off'}">${d.device_owner ? 'פעיל' : 'לא פעיל'}</span></div>
-    <div class="row"><span>חומת אש</span><span class="chip ${d.firewall_on ? 'on' : 'off'}">${d.firewall_on ? 'פעילה' : 'כבויה'}</span></div>
-    <div class="row"><span>גרסת מדיניות</span><span class="muted">${d.policy_version} (הוחל: ${d.applied_version})</span></div>
-    <div class="row"><span>נראה לאחרונה</span><span class="muted">${d.last_seen ? new Date(d.last_seen).toLocaleString('he-IL') : '—'}</span></div>
-  </div>`;
-
-  // חומת אש
-  h += `<div class="card"><h3>חומת אש</h3>
-    <div class="row"><span>מצב סינון דומיינים (אחרת: חסימה לפי אפליקציה)</span>${sw(pol.firewall.filterMode, "tgl('firewall.filterMode')")}</div>
-    <div class="row"><span>חסימת אינטרנט לכל המכשיר</span>${sw(pol.firewall.blockWholeDevice, "tgl('firewall.blockWholeDevice')")}</div>
-  </div>`;
-
-  // סינון דומיינים
-  h += `<div class="card"><h3>סינון דומיינים</h3>
-    <div class="row"><span>מצב רשימה</span>
-      <span><button class="ghost" onclick="setMode('BLOCK')" ${pol.domains.mode==='BLOCK'?'style="border-color:var(--cyan)"':''}>שחורה</button>
-      <button class="ghost" onclick="setMode('ALLOW')" ${pol.domains.mode==='ALLOW'?'style="border-color:var(--cyan)"':''}>לבנה</button></span></div>
-    <h4>דומיינים חסומים</h4><div class="grid2"><input type="text" id="addBlocked" placeholder="example.com"><button onclick="addDom('blocked')">הוסף</button></div>
-    <div id="blockedTags">${tags('blocked')}</div>
-    <h4>דומיינים מותרים</h4><div class="grid2"><input type="text" id="addAllowed" placeholder="example.com"><button onclick="addDom('allowed')">הוסף</button></div>
-    <div id="allowedTags">${tags('allowed')}</div>
-  </div>`;
-
-  // סמל כשרות
-  h += `<div class="card"><h3>סמל כשרות על המסך</h3>
-    <div class="row"><span>הצג סמל "כשר" קבוע במרכז המסך</span>${sw(pol.watermark.enabled, "tgl('watermark.enabled')")}</div>
-    <div class="muted">דורש פעם אחת במכשיר את ההרשאה "הצגה מעל אפליקציות אחרות".</div>
-  </div>`;
-
-  // סינון גוגל מפות
-  h += `<div class="card"><h3>סינון גוגל מפות</h3>
-    <div class="row"><span>חסימת תמונות, סרטונים ו-Street View בגוגל מפות</span>${sw(pol.mapsFilter.enabled, "tgl('mapsFilter.enabled')")}</div>
-    ${pol.mapsFilter.enabled && !pol.firewall.filterMode ? '<div class="muted" style="color:var(--amber,#f5b942)">פועל רק כשחומת האש במצב סינון דומיינים — הפעל את המתג בכרטיס "חומת אש".</div>' : ''}
-    <div class="muted">המפה והניווט ממשיכים לעבוד. באנדרואיד מתחת ל-10 החסימה חלה על כל המכשיר.</div>
-    <h4>כתובות נוספות לחסימה</h4><div class="grid2"><input type="text" id="addMapsExtra" placeholder="example.com"><button onclick="addMapsExtra()">הוסף</button></div>
-    <div>${(pol.mapsFilter.extra).map((d, i) => `<span class="tag"><b onclick="rmMapsExtra(${i})">✕</b>${d}</span>`).join('') || '<span class="muted">אין</span>'}</div>
-  </div>`;
-
-  // קיוסק
-  h += `<div class="card"><h3>קיוסק</h3>
-    <div class="row"><span>מצב קיוסק</span>${sw(pol.kiosk.enabled, "tgl('kiosk.enabled')")}</div>
-    <div class="muted">בחירת אפליקציות למסך הבית מתבצעת במכשיר ומסתנכרנת.</div>
-  </div>`;
-
-  // הגבלות
-  h += '<div class="card"><h3>הגבלות מערכת</h3>';
-  RESTRICTIONS.forEach(([group, items]) => {
-    h += `<h4>${group}</h4>`;
-    items.forEach(([key, title]) => {
-      h += `<div class="row"><span>${title}</span>${sw(!!pol.restrictions[key], "tgl('restrictions." + key + "')")}</div>`;
-    });
-  });
-  h += `<div class="save-bar"><button onclick="savePolicy()">שמור שינויים</button>
-    <span class="muted" id="saveMsg"></span></div></div>`;
-
-  h += '<div class="card"><h3>יומן אירועים</h3><div id="eventsBox" class="muted">טוען…</div></div>';
-
+  const d = CUR;
+  const seen = d.last_seen ? new Date(d.last_seen) : null;
+  const online = seen && (Date.now() - seen.getTime() < 20 * 60000);
+  let h = `<div class="dev-head">
+      <div><span class="brand">נתיב נקי</span> <span class="muted">· ניהול</span></div>
+      <div class="dev-num">מכשיר מס' ${d.id}</div>
+    </div>
+    <div class="savebar-top"><span class="chip ${online ? 'on' : 'off'}">${online ? 'מחובר' : 'לא מחובר'}</span>
+      <span class="muted" id="saveMsg">${pendingText()}</span></div>
+    <div class="tabs">${TABS.map((t, i) => `<span class="tab ${i === TAB ? 'sel' : ''}" onclick="setTab(${i})">${t}</span>`).join('')}</div>
+    <div id="tabBody"></div>`;
   document.getElementById('deviceBody').innerHTML = h;
+  renderTab();
 }
 
-function tags(which) {
-  return (CUR.policy.domains[which] || []).map((d, i) =>
-    `<span class="tag"><b onclick="rmDom('${which}',${i})">✕</b>${d}</span>`).join('') ||
-    '<span class="muted">אין</span>';
+function pendingText() {
+  if ((CUR.policy_version || 0) > (CUR.applied_version || 0))
+    return 'שינויים ממתינים — יוחלו במכשיר בסנכרון הבא (עד 15 דקות)';
+  return REP.at ? 'מעודכן לפי דיווח המכשיר מ-' + new Date(REP.at).toLocaleString('he-IL') : 'המכשיר עוד לא דיווח מצב מלא';
 }
 
+function setTab(i) { TAB = i; renderDevice(); window.scrollTo(0, 0); }
+
+function renderTab() {
+  const el = document.getElementById('tabBody');
+  if (!el) return;
+  el.innerHTML = [tabDashboard, tabApps, tabFirewall, tabFiltering, tabDiag, tabRestrictions, tabLog][TAB]();
+  if (TAB === 6) renderEvents();
+}
+
+// ---------- לוח בקרה ----------
+function tabDashboard() {
+  const d = CUR, pol = POL;
+  let h = `<div class="card"><h3>מספר מכשיר ושליטה מרחוק</h3>
+    <div class="big-num">${d.id}</div>
+    <div class="muted">זה מספר המכשיר. כדי לשנות הגדרות מרחוק — נכנסים לאתר למכשיר לפי המספר הזה.</div>
+    <div class="row"><span>סנכרון אחרון</span><span class="muted">${d.last_seen ? new Date(d.last_seen).toLocaleString('he-IL') : '—'}</span></div>
+    <div class="row"><span>גרסת מדיניות</span><span class="muted">${d.policy_version} (הוחל במכשיר: ${d.applied_version})</span></div>
+    <div class="grid2" style="margin-top:6px"><input type="text" id="devName" placeholder="שם למכשיר (לא חובה)" value="${esc(d.name || '')}">
+      <button class="ghost" onclick="saveName()">שמור שם</button></div>
+  </div>`;
+
+  const perm = REP.overlayPermission;
+  h += `<div class="card"><h3>סמל כשרות על המסך</h3>
+    ${toggleRow('הצג סמל קבוע במרכז המסך',
+      !pol.watermark.enabled ? 'כבוי' : (perm === false ? '<span style="color:var(--amber)">ממתין להרשאה במכשיר</span>' : '<span style="color:var(--green)">מוצג</span>'),
+      pol.watermark.enabled, "tgl('watermark.enabled')")}
+    <div class="muted">סמל מגן חצי-שקוף עם "כשר". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.</div>
+    ${pol.watermark.enabled && perm === false ? '<div class="muted" style="color:var(--amber)">נדרשת במכשיר הרשאה חד-פעמית: "הצגה מעל אפליקציות אחרות".</div>' : ''}
+  </div>`;
+
+  h += `<div class="card"><h3>מצב הגנה</h3>
+    <div style="color:${d.device_owner ? 'var(--green)' : 'var(--amber)'};font-weight:600">
+      ${d.device_owner ? 'המכשיר מנוהל כ-Device Owner.' : 'המכשיר אינו Device Owner — חלק מההגבלות לא יחולו.'}</div>
+    <div class="row"><span>חומת אש</span><span class="chip ${d.firewall_on ? 'on' : 'off'}">${d.firewall_on ? 'פעילה' : 'כבויה'}</span></div>
+  </div>`;
+
+  const info = Array.isArray(REP.info) ? REP.info : [];
+  h += `<div class="card"><h3>פרטי מכשיר</h3>${info.length
+    ? info.map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span class="muted">${esc(v)}</span></div>`).join('')
+    : `<div class="row"><span>דגם</span><span class="muted">${esc(d.model || '—')}</span></div>
+       <div class="row"><span>גרסת Android</span><span class="muted">${esc(d.android || '—')}</span></div>`}</div>`;
+  return h;
+}
+
+// ---------- אפליקציות ----------
+function appList() {
+  const byPkg = {};
+  CAT.forEach(a => { byPkg[a.p] = { p: a.p, l: a.l || a.p, s: !!a.s, i: a.i || null }; });
+  Object.keys(POL.apps).forEach(p => { if (!byPkg[p]) byPkg[p] = { p, l: p, s: false, i: null }; });
+  return Object.values(byPkg).sort((a, b) => a.l.localeCompare(b.l, 'he'));
+}
+function appState(p) {
+  return Object.assign({ net: false, browser: false, home: false, hidden: false, suspended: false, noUninstall: false, pending: false }, POL.apps[p] || {});
+}
+function isManaged(st) { return st.hidden || st.suspended || st.noUninstall || !st.net || st.browser; }
+
+function tabApps() {
+  const all = appList();
+  const q = APPQ.trim().toLowerCase();
+  const list = all.filter(a => {
+    const st = appState(a.p);
+    if (!APPSYS && a.s) return false;
+    if (q && !a.l.toLowerCase().includes(q) && !a.p.toLowerCase().includes(q)) return false;
+    if (APPF === 'MANAGED') return isManaged(st);
+    if (APPF === 'HOME') return st.home;
+    if (APPF === 'PENDING') return st.pending;
+    return true;
+  });
+  const chip = (k, label) => `<span class="fchip ${APPF === k ? 'sel' : ''}" onclick="APPF='${k}';renderTab()">${label}</span>`;
+  let h = `<input type="text" id="appQ" placeholder="חיפוש לפי שם או חבילה" value="${esc(APPQ)}" oninput="APPQ=this.value;renderAppRows()">
+    <div class="fchips">${chip('ALL', 'הכל')}${chip('MANAGED', 'מנוהלות')}${chip('HOME', 'במסך הבית')}${chip('PENDING', 'ממתינות לאישור')}
+      <span class="fchip ${APPSYS ? 'sel' : ''}" onclick="APPSYS=!APPSYS;renderTab()">${APPSYS ? 'כולל מערכת ✓' : 'אפליקציות מערכת'}</span></div>`;
+  if (!CUR.device_owner) h += '<div class="muted" style="color:var(--amber)">שים לב: ללא Device Owner פעיל, פעולות הסתרה/השעיה/מניעת הסרה לא יחולו.</div>';
+  if (!all.length) h += '<div class="card muted">רשימת האפליקציות תופיע אחרי הסנכרון הראשון של המכשיר עם הגרסה החדשה של האפליקציה.</div>';
+  h += `<div class="muted" id="appCount">${list.length} אפליקציות · לחץ על שורה לפעולות</div><div id="appRows">${list.map(appRow).join('')}</div>`;
+  return h;
+}
+function renderAppRows() {
+  // חיפוש בלי לאבד את הפוקוס בשדה
+  const all = appList(), q = APPQ.trim().toLowerCase();
+  const list = all.filter(a => {
+    const st = appState(a.p);
+    if (!APPSYS && a.s) return false;
+    if (q && !a.l.toLowerCase().includes(q) && !a.p.toLowerCase().includes(q)) return false;
+    if (APPF === 'MANAGED') return isManaged(st);
+    if (APPF === 'HOME') return st.home;
+    if (APPF === 'PENDING') return st.pending;
+    return true;
+  });
+  document.getElementById('appRows').innerHTML = list.map(appRow).join('');
+  document.getElementById('appCount').textContent = list.length + ' אפליקציות · לחץ על שורה לפעולות';
+}
+function mini(text, cls) { return `<span class="mini ${cls}">${text}</span>`; }
+function appRow(a) {
+  const st = appState(a.p), open = OPEN_APP === a.p, P = esc(a.p).replace(/'/g, '');
+  let chips = '';
+  if (st.pending) chips += mini('ממתינה לאישור', 'm-amber');
+  chips += mini(st.net ? 'רשת: מותר' : 'רשת: חסום', st.net ? 'm-green' : 'm-red');
+  if (st.hidden) chips += mini('מוסתרת', 'm-amber');
+  if (st.suspended) chips += mini('מושעית', 'm-amber');
+  if (st.noUninstall) chips += mini('חסומה להסרה', 'm-cyan');
+  if (st.browser) chips += mini('דפדפן פנימי חסום', 'm-purple');
+  if (st.home) chips += mini('במסך הבית', 'm-cyan');
+  const icon = a.i ? `<img class="app-ic" src="data:image/png;base64,${a.i}" alt="">` : '<span class="app-ic ph"></span>';
+  let h = `<div class="app-row" onclick="OPEN_APP=OPEN_APP==='${P}'?null:'${P}';renderAppRows()">
+    <div class="app-top">${icon}<div><div class="app-l">${esc(a.l)}</div><div class="app-p">${esc(a.p)}</div></div></div>
+    <div class="minis">${chips}</div>`;
+  if (open) {
+    const t = (label, key) => `<div class="row" onclick="event.stopPropagation()"><span>${label}</span>${sw(st[key], `appTgl('${P}','${key}')`)}</div>`;
+    h += `<div class="app-acts">${t('אפשר אינטרנט', 'net')}${t('חסום דפדפן פנימי', 'browser')}${t('הצג במסך הבית (קיוסק)', 'home')}
+      ${t('הסתר אפליקציה', 'hidden')}${t('השעה אפליקציה', 'suspended')}${t('מנע הסרה', 'noUninstall')}
+      ${st.pending ? '<div class="muted" style="color:var(--amber)">אפליקציה חדשה — חסומה לרשת עד אישור. הפעלת "אפשר אינטרנט" מאשרת אותה.</div>' : ''}</div>`;
+  }
+  return h + '</div>';
+}
+function appTgl(p, key) {
+  const st = appState(p);
+  st[key] = !st[key];
+  if (key === 'net' && st.net) st.pending = false;
+  POL.apps[p] = st;
+  changed();
+  renderAppRows();
+}
+
+// ---------- חומת אש ----------
+function tabFirewall() {
+  const f = POL.firewall;
+  const allowed = REP.allowedCount ?? Object.values(POL.apps).filter(a => a.net).length;
+  const blocked = REP.blockedCount ?? '—';
+  return `<div class="card"><h3>חומת אש</h3>
+      ${toggleRow('הגנת רשת', f.enabled ? '<span style="color:var(--green)">פעילה</span>' : 'כבויה', f.enabled, "tgl('firewall.enabled')")}
+      <div class="muted">חוסמת אינטרנט לכל אפליקציה שלא אושרה. ללא Root (VPN מקומי).</div></div>
+    <div class="card"><h3>מצב פעולה</h3>
+      ${toggleRow(f.filterMode ? 'סינון דומיינים (DNS)' : 'חסימה לפי אפליקציה',
+        f.filterMode ? 'כל האפליקציות עוברות דרך סינון הדומיינים' : 'אפליקציות לא מאושרות מנותקות לגמרי', f.filterMode, "tgl('firewall.filterMode')")}</div>
+    <div class="card"><h3>חסימת אינטרנט לכל המכשיר</h3>
+      ${toggleRow('נתק אינטרנט לכל האפליקציות (מצב חסימה)', '', f.blockWholeDevice, "tgl('firewall.blockWholeDevice')")}</div>
+    <div class="card"><h3>סיכום</h3>
+      <div class="row"><span>אפליקציות מורשות לאינטרנט</span><span style="color:var(--green)">${allowed}</span></div>
+      <div class="row"><span>אפליקציות חסומות</span><span style="color:var(--red)">${blocked}</span></div></div>`;
+}
+
+// ---------- סינון ----------
+function tabFiltering() {
+  const pol = POL;
+  const mode = (m, label) => `<span class="fchip ${pol.domains.mode === m ? 'sel' : ''}" onclick="setMode('${m}')">${label}</span>`;
+  const ready = pol.firewall.enabled && pol.firewall.filterMode;
+  let h = `<div class="card"><h3>מצב סינון</h3>
+      <div class="fchips">${mode('BLOCK', 'רשימה שחורה (הכול מותר חוץ מ-)')}${mode('ALLOW', 'רשימה לבנה (הכול חסום חוץ מ-)')}</div>
+      ${REP.upstreamDns ? `<div class="muted">שרת DNS במעלה הזרם: ${esc(REP.upstreamDns)}</div>` : ''}</div>`;
+  h += `<div class="card"><h3>סינון גוגל מפות</h3>
+      ${toggleRow('חסימת תמונות וסרטונים',
+        !pol.mapsFilter.enabled ? 'כבוי' : (ready ? '<span style="color:var(--green)">פעיל — תמונות, סרטונים ו-Street View חסומים</span>' : '<span style="color:var(--amber)">מופעל, אך ממתין למצב \'סינון דומיינים\'</span>'),
+        pol.mapsFilter.enabled, "tgl('mapsFilter.enabled')")}
+      <div class="muted">המפה, החיפוש והניווט ממשיכים לעבוד. ללא Root. באנדרואיד מתחת ל-10 החסימה חלה על כל המכשיר.</div>
+      ${pol.mapsFilter.enabled && !ready ? `<div class="muted" style="color:var(--amber)">הסינון עובד דרך חומת האש במצב 'סינון דומיינים'.</div>
+        <button class="ghost" style="margin-top:6px" onclick="POL.firewall.filterMode=true;POL.firewall.enabled=true;changed();renderTab()">עבור למצב סינון דומיינים והפעל</button>` : ''}
+    </div>`;
+  h += domEditor('גוגל מפות — כתובות נוספות לחסימה', 'maps', pol.mapsFilter.extra);
+  h += domEditor('דומיינים חסומים', 'blocked', pol.domains.blocked);
+  h += domEditor('דומיינים מותרים', 'allowed', pol.domains.allowed);
+  return h;
+}
+function domEditor(title, which, items) {
+  return `<div class="card"><h3>${title}</h3>
+    <div class="grid2"><input type="text" id="add_${which}" placeholder="example.com" onkeydown="if(event.key==='Enter')addDom('${which}')"><button onclick="addDom('${which}')">הוסף</button></div>
+    <div>${items.map((d, i) => `<span class="tag"><b onclick="rmDom('${which}',${i})">✕</b>${esc(d)}</span>`).join('') || '<span class="muted">אין</span>'}</div></div>`;
+}
+function domArr(which) { return which === 'maps' ? POL.mapsFilter.extra : POL.domains[which]; }
+function addDom(which) {
+  const inp = document.getElementById('add_' + which);
+  const v = inp.value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^\*?\./, '').replace(/^www\./, '');
+  if (!v) return;
+  const arr = domArr(which);
+  if (!arr.includes(v)) arr.push(v);
+  changed(); renderTab();
+}
+function rmDom(which, i) { domArr(which).splice(i, 1); changed(); renderTab(); }
+function setMode(m) { POL.domains.mode = m; changed(); renderTab(); }
+
+// ---------- אבחון ----------
+const DIAG_LABEL = { SUPPORTED: ['פועל', 'on'], FAILED: ['נכשל', 'm-red'], NEEDS_DEVICE_OWNER: ['דורש Device Owner', 'm-amber'],
+  NEEDS_ROOT: ['דורש Root', 'm-amber'], NEEDS_PERMISSION: ['דורש הרשאה', 'm-amber'], UNSUPPORTED: ['לא נתמך', 'off'], UNKNOWN: ['לא ידוע', 'off'] };
+function tabDiag() {
+  const diag = Array.isArray(REP.diag) ? REP.diag : [];
+  let h = `<div class="card"><h3>אבחון יכולות</h3>${diag.length ? diag.map(r => {
+    const [label, cls] = DIAG_LABEL[r.status] || [r.status, 'off'];
+    return `<div class="row"><div><div>${esc(r.title)}</div>${r.detail ? `<div class="muted">${esc(r.detail)}</div>` : ''}</div><span class="chip ${cls}">${label}</span></div>`;
+  }).join('') : '<div class="muted">האבחון יופיע אחרי הסנכרון הבא של המכשיר.</div>'}</div>`;
+  h += `<div class="card"><h3>אייקון האפליקציה</h3>
+    ${toggleRow('הסתר את אייקון האפליקציה במכשיר', POL.icon.hidden ? 'מוסתר' : 'מוצג', POL.icon.hidden, "tgl('icon.hidden')")}
+    <div class="muted">כשהאייקון מוסתר, נכנסים לאפליקציה דרך הגדרות המכשיר ← אפליקציות ← נתיב נקי, או בקוד החייגן *#*#5374#*#*.</div></div>`;
+  return h;
+}
+
+// ---------- הגבלות ----------
+function tabRestrictions() {
+  let h = CUR.device_owner ? '' : '<div class="card muted" style="color:var(--amber)">ההגבלות דורשות Device Owner פעיל במכשיר.</div>';
+  RESTRICTIONS.forEach(([group, items]) => {
+    h += `<div class="card"><h3>${group}</h3>${items.map(([key, title]) =>
+      `<div class="row"><span>${title}</span>${sw(!!POL.restrictions[key], "tgl('restrictions." + key + "')")}</div>`).join('')}</div>`;
+  });
+  h += `<div class="card"><h3>קיוסק ו-Launcher</h3>
+    ${toggleRow('מצב קיוסק', 'רק האפליקציות שסומנו "במסך הבית" יופיעו וייפתחו', POL.kiosk.enabled, "tgl('kiosk.enabled')")}
+    <div class="muted">בחירת האפליקציות למסך הבית — בלשונית "אפליקציות" ← "הצג במסך הבית (קיוסק)".</div></div>`;
+  return h;
+}
+
+// ---------- יומן ----------
+function tabLog() {
+  const lines = Array.isArray(REP.log) ? REP.log : [];
+  return `<div class="card"><h3>יומן אירועים ושגיאות</h3>
+      ${lines.length ? lines.map(l => `<div class="log">${esc(l)}</div>`).join('') : '<div class="muted">אין רשומות עדיין.</div>'}</div>
+    <div class="card"><h3>אירועי שרת</h3><div id="eventsBox" class="muted">טוען…</div></div>`;
+}
+function renderEvents() {
+  const box = document.getElementById('eventsBox');
+  if (!box) return;
+  box.innerHTML = EVENTS.length ? EVENTS.map(e =>
+    `<div class="log">${new Date(e.created_at).toLocaleString('he-IL')} [${esc(e.level)}] ${esc(e.message)}</div>`).join('') : 'אין אירועים.';
+}
+
+// ---------- שינוי ושמירה אוטומטית ----------
 function tgl(pathStr) {
   const parts = pathStr.split('.');
-  let o = CUR.policy;
-  for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+  let o = POL;
+  for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]] = o[parts[i]] || {};
   const last = parts[parts.length - 1];
   o[last] = !o[last];
-  renderDevice();
+  changed();
+  renderTab();
 }
 
-function setMode(m) { CUR.policy.domains.mode = m; renderDevice(); }
-function addDom(which) {
-  const inp = document.getElementById(which === 'blocked' ? 'addBlocked' : 'addAllowed');
-  const v = inp.value.trim().toLowerCase().replace(/^www\./, '');
-  if (v) { CUR.policy.domains[which] = CUR.policy.domains[which] || []; CUR.policy.domains[which].push(v); renderDevice(); }
+function changed() {
+  const m = document.getElementById('saveMsg');
+  if (m) m.textContent = 'שומר…';
+  clearTimeout(SAVE_T);
+  SAVE_T = setTimeout(savePolicy, 700);
 }
-function addMapsExtra() {
-  const v = document.getElementById('addMapsExtra').value.trim().toLowerCase()
-    .replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/^\*?\./, '');
-  if (v) { CUR.policy.mapsFilter.extra.push(v); renderDevice(); }
+
+async function savePolicy() {
+  const m = document.getElementById('saveMsg');
+  try {
+    const r = await api('/devices/' + CUR.id + '/policy', {
+      method: 'PUT', body: JSON.stringify({ policy: POL, summary: 'עדכון מהאתר' })
+    });
+    CUR.policy_version = r.version;
+    if (m) m.textContent = 'נשמר · יוחל במכשיר בסנכרון הבא (עד 15 דקות)';
+  } catch (e) { if (m) m.textContent = 'השמירה נכשלה: ' + e.message; }
 }
-function rmMapsExtra(i) { CUR.policy.mapsFilter.extra.splice(i, 1); renderDevice(); }
-function rmDom(which, i) { CUR.policy.domains[which].splice(i, 1); renderDevice(); }
 
 async function saveName() {
   const name = document.getElementById('devName').value.trim();
   try { await api('/devices/' + CUR.id + '/name', { method: 'PUT', body: JSON.stringify({ name }) }); CUR.name = name; renderDevice(); }
-  catch (e) { alert(e.message); }
-}
-
-async function savePolicy() {
-  try {
-    const r = await api('/devices/' + CUR.id + '/policy', {
-      method: 'PUT', body: JSON.stringify({ policy: CUR.policy, summary: 'עדכון מהאתר' })
-    });
-    CUR.policy_version = r.version;
-    document.getElementById('saveMsg').textContent = 'נשמר (גרסה ' + r.version + '). יוחל במכשיר בסנכרון הבא.';
-  } catch (e) { document.getElementById('saveMsg').textContent = e.message; }
+  catch (e) { const m = document.getElementById('saveMsg'); if (m) m.textContent = e.message; }
 }
 
 async function loadEvents(id) {
-  try {
-    const d = await api('/devices/' + id + '/events');
-    const box = document.getElementById('eventsBox');
-    if (!box) return;
-    box.innerHTML = d.events.length ? d.events.map(e =>
-      `<div class="log">${new Date(e.created_at).toLocaleString('he-IL')} [${e.level}] ${e.message}</div>`).join('')
-      : 'אין אירועים.';
-  } catch {}
+  try { EVENTS = (await api('/devices/' + id + '/events')).events || []; } catch { EVENTS = []; }
+  renderEvents();
 }
 
 function logout() { TOKEN = null; localStorage.removeItem('nativ_token'); show('view-login'); }

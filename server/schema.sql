@@ -48,3 +48,9 @@ CREATE TABLE IF NOT EXISTS change_log (
 
 CREATE INDEX IF NOT EXISTS idx_events_device ON events(device_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_changelog_device ON change_log(device_id, id DESC);
+
+-- תמונת מצב מלאה שהמכשיר מדווח (כדי שהאתר יציג בדיוק את מה שבאפליקציה)
+ALTER TABLE devices ADD COLUMN IF NOT EXISTS reported JSONB;
+ALTER TABLE devices ADD COLUMN IF NOT EXISTS reported_at TIMESTAMPTZ;
+-- רשימת האפליקציות במכשיר: שם, חבילה, מערכת, אייקון
+ALTER TABLE devices ADD COLUMN IF NOT EXISTS apps JSONB;

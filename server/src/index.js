@@ -16,7 +16,7 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '8mb' })); // רשימת אפליקציות עם אייקונים
 
 // בדיקת תקינות: גם השרת וגם החיבור למסד הנתונים
 app.get('/api/health', async (_req, res) => {

@@ -18,6 +18,14 @@ object IconLoader {
         }
     }
 
+    /** אייקון כ-PNG מקודד Base64 (לשליחה לאתר הניהול). */
+    fun pngBase64(ctx: Context, pkg: String, sizePx: Int = 48): String? = try {
+        val bmp = ctx.packageManager.getApplicationIcon(pkg).toBitmap(sizePx)
+        val out = java.io.ByteArrayOutputStream()
+        bmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+        android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+    } catch (_: Exception) { null }
+
     private fun Drawable.toBitmap(size: Int): Bitmap {
         if (this is BitmapDrawable && bitmap != null) {
             return Bitmap.createScaledBitmap(bitmap, size, size, true)

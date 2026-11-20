@@ -61,6 +61,9 @@ class FirewallController(private val ctx: Context) {
         if (isRunning()) startService(FirewallVpnService.ACTION_START) // בנייה מחדש במצב החדש
     }
 
+    /** בנייה מחדש של המנהרה (למשל אחרי שינוי באפליקציות המורשות). */
+    fun rebuild() { if (isRunning()) startService(FirewallVpnService.ACTION_START) }
+
     data class Counts(val allowed: Int, val blocked: Int)
 
     fun counts(): Counts {
