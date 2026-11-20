@@ -1,0 +1,24 @@
+package com.kosherride.filter.admin
+
+import android.app.admin.DeviceAdminReceiver
+import android.content.ComponentName
+import android.content.Context
+import com.kosherride.filter.log.EventLog
+
+class AdminReceiver : DeviceAdminReceiver() {
+
+    override fun onEnabled(context: Context, intent: android.content.Intent) {
+        EventLog.info(context, "AdminReceiver", "מנהל מכשיר הופעל")
+        // הרשאת ניהול התקבלה — נרשמים לשרת ומקבלים מספר מכשיר
+        com.kosherride.filter.sync.SyncScheduler.now(context)
+    }
+
+    override fun onDisabled(context: Context, intent: android.content.Intent) {
+        EventLog.warn(context, "AdminReceiver", "מנהל מכשיר בוטל")
+    }
+
+    companion object {
+        fun component(ctx: Context): ComponentName =
+            ComponentName(ctx.packageName, AdminReceiver::class.java.name)
+    }
+}

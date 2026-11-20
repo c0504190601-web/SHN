@@ -1,4 +1,4 @@
-# התקנה והפעלה — נתיב נקי
+# התקנה והפעלה — נסיעה כשרה
 
 ## 1. התקנת ה-APK
 העבר את קובץ ה-APK למכשיר והתקן. לבדיקות אפשר להשתמש ב-APK שנבנה ב-GitHub Actions
@@ -12,8 +12,8 @@ Device Owner חייב מכשיר **נקי** — בלי חשבון Google ובל�
 2. חבר למחשב עם כבל.
 3. הרץ:
    ```
-   adb shell dpm set-device-owner com.nativ.filter/.admin.AdminReceiver
-   adb shell appops set com.nativ.filter SYSTEM_ALERT_WINDOW allow   # לסמל הכשרות על המסך
+   adb shell dpm set-device-owner com.kosherride.filter/.admin.AdminReceiver
+   adb shell appops set com.kosherride.filter SYSTEM_ALERT_WINDOW allow   # לסמל הכשרות על המסך
    ```
 4. חזור לאפליקציה ולחץ "בדוק מצב". היא תאמת שההפעלה הצליחה.
 

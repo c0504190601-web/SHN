@@ -1,4 +1,4 @@
--- סכמת מסד הנתונים של נתיב נקי
+-- סכמת מסד הנתונים של נסיעה כשרה
 
 CREATE TABLE IF NOT EXISTS admins (
     id          SERIAL PRIMARY KEY,

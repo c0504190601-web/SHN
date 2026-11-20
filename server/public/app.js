@@ -1,5 +1,5 @@
 'use strict';
-let TOKEN = localStorage.getItem('nativ_token') || null;
+let TOKEN = localStorage.getItem('kosherride_token') || null;
 let CUR = null; // מכשיר נוכחי + policy
 
 // רשימת הגבלות — חייבת להתאים למזהים באפליקציה (RestrictionsManager)
@@ -41,7 +41,7 @@ async function doLogin() {
   const u = document.getElementById('u').value, p = document.getElementById('p').value;
   try {
     const d = await api('/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) });
-    TOKEN = d.token; localStorage.setItem('nativ_token', TOKEN);
+    TOKEN = d.token; localStorage.setItem('kosherride_token', TOKEN);
     document.getElementById('who').textContent = d.username;
     showDevices();
   } catch (e) { document.getElementById('loginErr').textContent = e.message; }
@@ -139,7 +139,7 @@ function renderDevice() {
   const seen = d.last_seen ? new Date(d.last_seen) : null;
   const online = seen && (Date.now() - seen.getTime() < 20 * 60000);
   let h = `<div class="dev-head">
-      <div><span class="brand">נתיב נקי</span> <span class="muted">· ניהול</span></div>
+      <div><span class="brand">נסיעה כשרה</span> <span class="muted">· ניהול</span></div>
       <div class="dev-num">מכשיר מס' ${d.id}</div>
     </div>
     <div class="savebar-top"><span class="chip ${online ? 'on' : 'off'}">${online ? 'מחובר' : 'לא מחובר'}</span>
@@ -347,7 +347,7 @@ function tabDiag() {
   }).join('') : '<div class="muted">האבחון יופיע אחרי הסנכרון הבא של המכשיר.</div>'}</div>`;
   h += `<div class="card"><h3>אייקון האפליקציה</h3>
     ${toggleRow('הסתר את אייקון האפליקציה במכשיר', POL.icon.hidden ? 'מוסתר' : 'מוצג', POL.icon.hidden, "tgl('icon.hidden')")}
-    <div class="muted">כשהאייקון מוסתר, נכנסים לאפליקציה דרך הגדרות המכשיר ← אפליקציות ← נתיב נקי, או בקוד החייגן *#*#5374#*#*.</div></div>`;
+    <div class="muted">כשהאייקון מוסתר, נכנסים לאפליקציה דרך הגדרות המכשיר ← אפליקציות ← נסיעה כשרה, או בקוד החייגן *#*#5374#*#*.</div></div>`;
   return h;
 }
 
@@ -418,7 +418,7 @@ async function loadEvents(id) {
   renderEvents();
 }
 
-function logout() { TOKEN = null; localStorage.removeItem('nativ_token'); show('view-login'); }
+function logout() { TOKEN = null; localStorage.removeItem('kosherride_token'); show('view-login'); }
 
 // אתחול
 if (TOKEN) showDevices(); else show('view-login');

@@ -1,20 +1,20 @@
-# בניית גרסת שחרור חתומה — נתיב נקי
+# בניית גרסת שחרור חתומה — נסיעה כשרה
 
 ה-CI בונה כברירת מחדל APK מסוג **debug** (חתום במפתח debug, לבדיקות).
 לשחרור אמיתי נדרש APK חתום במפתח שלך.
 
 ## 1. יצירת מפתח חתימה (פעם אחת)
 ```
-keytool -genkeypair -v -keystore nativ-release.jks \
-  -alias nativ -keyalg RSA -keysize 2048 -validity 10000
+keytool -genkeypair -v -keystore kosherride-release.jks \
+  -alias kosherride -keyalg RSA -keysize 2048 -validity 10000
 ```
 שמור את הקובץ ואת הסיסמאות במקום בטוח. **אובדן המפתח = אי אפשר לעדכן את האפליקציה.**
 
 ## 2. בנייה מקומית
 ```
-export KEYSTORE_PATH=/path/to/nativ-release.jks
+export KEYSTORE_PATH=/path/to/kosherride-release.jks
 export KEYSTORE_PASSWORD=...
-export KEY_ALIAS=nativ
+export KEY_ALIAS=kosherride
 export KEY_PASSWORD=...
 gradle assembleRelease
 ```

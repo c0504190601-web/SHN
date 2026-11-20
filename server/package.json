@@ -1,7 +1,7 @@
 {
-  "name": "nativ-filter-server",
+  "name": "kosherride-server",
   "version": "1.0.0",
-  "description": "נתיב נקי — שרת ניהול מרחוק",
+  "description": "נסיעה כשרה — שרת ניהול מרחוק",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
