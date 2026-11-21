@@ -30,8 +30,11 @@ class FirewallController(private val ctx: Context) {
         // כ-Device Owner: Always-on + Lockdown, שמונע כיבוי ומבטל צורך בהסכמה.
         if (dpm.isDeviceOwnerApp(ctx.packageName)) {
             try {
-                dpm.setAlwaysOnVpnPackage(admin, ctx.packageName, true)
-                EventLog.info(ctx, "Firewall", "הוגדר Always-on VPN עם נעילה")
+                // בלי Lockdown: במצב Lockdown אנדרואיד חוסם כל תעבורה שלא עוברת במנהרה —
+                // כולל אפליקציות מורשות (שיוצאות מהמנהרה) וכל מה שאינו DNS במצב סינון. זה ניתק את כל המכשיר.
+                // כיבוי ה-VPN על ידי המשתמש נמנע בנפרד בהגבלת "נעילת הגדרות VPN".
+                dpm.setAlwaysOnVpnPackage(admin, ctx.packageName, false)
+                EventLog.info(ctx, "Firewall", "הוגדר Always-on VPN")
             } catch (e: Exception) {
                 EventLog.warn(ctx, "Firewall", "setAlwaysOnVpnPackage נכשל: ${e.message}")
             }
@@ -59,6 +62,17 @@ class FirewallController(private val ctx: Context) {
     fun setFilterMode(filter: Boolean) {
         prefs.filterMode = filter
         if (isRunning()) startService(FirewallVpnService.ACTION_START) // בנייה מחדש במצב החדש
+    }
+
+    /** מסיר Lockdown שהוגדר בגרסה קודמת (הוא ניתק את כל המכשיר). */
+    fun fixLockdown() {
+        if (android.os.Build.VERSION.SDK_INT < 29 || !dpm.isDeviceOwnerApp(ctx.packageName)) return
+        runCatching {
+            if (dpm.getAlwaysOnVpnPackage(admin) == ctx.packageName && dpm.isAlwaysOnVpnLockdownEnabled(admin)) {
+                dpm.setAlwaysOnVpnPackage(admin, ctx.packageName, false)
+                EventLog.info(ctx, "Firewall", "Lockdown הוסר — אפליקציות מורשות גולשות שוב")
+            }
+        }
     }
 
     /** בנייה מחדש של המנהרה (למשל אחרי שינוי באפליקציות המורשות). */

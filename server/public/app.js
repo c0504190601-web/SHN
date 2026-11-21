@@ -98,7 +98,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o || {}));
 function defPolicy(p) {
   p = p || {};
   p.restrictions = p.restrictions || {};
-  p.firewall = Object.assign({ enabled: false, blockWholeDevice: false, filterMode: false }, p.firewall || {});
+  p.firewall = Object.assign({ enabled: false, blockWholeDevice: false, filterMode: false, defaultAllow: true }, p.firewall || {});
   p.kiosk = Object.assign({ enabled: false }, p.kiosk || {});
   p.domains = Object.assign({ mode: 'BLOCK', blocked: [], allowed: [] }, p.domains || {});
   p.domains.blocked = p.domains.blocked || []; p.domains.allowed = p.domains.allowed || [];
@@ -208,7 +208,7 @@ function appList() {
   return Object.values(byPkg).sort((a, b) => a.l.localeCompare(b.l, 'he'));
 }
 function appState(p) {
-  return Object.assign({ net: false, browser: false, home: false, hidden: false, suspended: false, noUninstall: false, pending: false }, POL.apps[p] || {});
+  return Object.assign({ net: !!POL.firewall.defaultAllow, browser: false, home: false, hidden: false, suspended: false, noUninstall: false, pending: false }, POL.apps[p] || {});
 }
 function isManaged(st) { return st.hidden || st.suspended || st.noUninstall || !st.net || st.browser; }
 
@@ -291,6 +291,10 @@ function tabFirewall() {
     <div class="card"><h3>מצב פעולה</h3>
       ${toggleRow(f.filterMode ? 'סינון דומיינים (DNS)' : 'חסימה לפי אפליקציה',
         f.filterMode ? 'כל האפליקציות עוברות דרך סינון הדומיינים' : 'אפליקציות לא מאושרות מנותקות לגמרי', f.filterMode, "tgl('firewall.filterMode')")}</div>
+    <div class="card"><h3>ברירת מחדל לאפליקציות</h3>
+      ${toggleRow(f.defaultAllow ? 'הכול מותר, חוץ ממה שחסמתי' : 'הכול חסום, חוץ ממה שאישרתי',
+        f.defaultAllow ? 'חוסמים אפליקציה בלשונית "אפליקציות" ← כיבוי "אפשר אינטרנט". אפליקציות חדשות ממתינות לאישור.' : 'רק אפליקציות שהופעל להן "אפשר אינטרנט" גולשות.',
+        f.defaultAllow, "tgl('firewall.defaultAllow')")}</div>
     <div class="card"><h3>חסימת אינטרנט לכל המכשיר</h3>
       ${toggleRow('נתק אינטרנט לכל האפליקציות (מצב חסימה)', '', f.blockWholeDevice, "tgl('firewall.blockWholeDevice')")}</div>
     <div class="card"><h3>סיכום</h3>

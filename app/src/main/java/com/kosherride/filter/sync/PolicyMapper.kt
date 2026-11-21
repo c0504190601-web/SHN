@@ -30,6 +30,7 @@ object PolicyMapper {
             .put("enabled", prefs.firewallEnabled)
             .put("blockWholeDevice", prefs.blockWholeDevice)
             .put("filterMode", prefs.filterMode)
+            .put("defaultAllow", com.kosherride.filter.apps.AppPolicyStore(ctx).defaultAllow)
 
         val kiosk = JSONObject().put("enabled", prefs.kioskEnabled)
 
@@ -93,6 +94,10 @@ object PolicyMapper {
         policy.optJSONObject("firewall")?.let { f ->
             fw.setFilterMode(f.optBoolean("filterMode", fw.filterMode()))
             fw.setBlockWholeDevice(f.optBoolean("blockWholeDevice", fw.blockWholeDevice()))
+            if (f.has("defaultAllow")) {
+                val st = com.kosherride.filter.apps.AppPolicyStore(ctx)
+                if (st.defaultAllow != f.optBoolean("defaultAllow")) { st.defaultAllow = f.optBoolean("defaultAllow"); fw.rebuild() }
+            }
             val wantOn = f.optBoolean("enabled", fw.isRunning())
             if (wantOn && !fw.isRunning()) fw.enable()
             else if (!wantOn && fw.isRunning()) fw.disable()

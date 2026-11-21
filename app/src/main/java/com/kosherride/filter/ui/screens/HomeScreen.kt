@@ -437,6 +437,34 @@ private fun FirewallTab() {
         )
     }
 
+    KCard("ברירת מחדל לאפליקציות") {
+        val store = remember { com.kosherride.filter.apps.AppPolicyStore(ctx) }
+        var defAllow by remember { mutableStateOf(store.defaultAllow) }
+        Row(
+            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (defAllow) "הכול מותר, חוץ ממה שחסמתי" else "הכול חסום, חוץ ממה שאישרתי",
+                    color = TextPrimary, fontSize = 14.sp
+                )
+                Text(
+                    if (defAllow) "חוסמים אפליקציה בלשונית 'אפליקציות' ← כיבוי 'אפשר אינטרנט'. אפליקציות חדשות ממתינות לאישור."
+                    else "רק אפליקציות שהופעל להן 'אפשר אינטרנט' גולשות.",
+                    color = TextMuted, fontSize = 12.sp
+                )
+            }
+            androidx.compose.material3.Switch(
+                checked = defAllow,
+                onCheckedChange = {
+                    store.defaultAllow = it; defAllow = it
+                    fw.rebuild(); refresh++
+                }
+            )
+        }
+    }
+
     KCard("חסימת אינטרנט לכל המכשיר") {
         Row(
             Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,

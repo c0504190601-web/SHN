@@ -31,6 +31,7 @@ class BootReceiver : BroadcastReceiver() {
         // שרת: רישום (אם עדיין אין מספר) וסנכרון — ירוץ לבד ברגע שיש אינטרנט
         if (a == Intent.ACTION_BOOT_COMPLETED) {
             runCatching { com.kosherride.filter.sync.SyncScheduler.now(context) }
+            runCatching { com.kosherride.filter.firewall.FirewallController(context).fixLockdown() }
             // סמל הכשרות חוזר אחרי כל הפעלה מחדש
             com.kosherride.filter.watermark.WatermarkController.sync(context)
         }

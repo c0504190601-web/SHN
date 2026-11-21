@@ -18,9 +18,24 @@ class AppPolicyStore(ctx: Context) {
     private fun putSet(key: String, v: Set<String>) =
         sp.edit().putStringSet(key, v).apply()
 
-    fun isNetAllowed(pkg: String) = getSet("net_allowed").contains(pkg)
-    fun setNetAllowed(pkg: String, allowed: Boolean) = toggle("net_allowed", pkg, allowed)
-    fun allowedPackages(): Set<String> = getSet("net_allowed")
+    /**
+     * מצב ברירת מחדל לאינטרנט:
+     *  true  — הכול מותר, חוץ מאפליקציות שנחסמו במפורש (ואפליקציות חדשות שממתינות לאישור).
+     *  false — הכול חסום, חוץ מאפליקציות שאושרו במפורש.
+     */
+    var defaultAllow: Boolean
+        get() = sp.getBoolean("default_allow", true)
+        set(v) = sp.edit().putBoolean("default_allow", v).apply()
+
+    fun isNetAllowed(pkg: String): Boolean =
+        if (defaultAllow) !getSet("net_blocked").contains(pkg) && !isPending(pkg)
+        else getSet("net_allowed").contains(pkg)
+
+    /** שומר את הבחירה בשתי הרשימות, כך שמעבר בין המצבים לא מאבד אותה. */
+    fun setNetAllowed(pkg: String, allowed: Boolean) {
+        toggle("net_allowed", pkg, allowed)
+        toggle("net_blocked", pkg, !allowed)
+    }
 
     fun isOnHome(pkg: String) = getSet("on_home").contains(pkg)
     fun setOnHome(pkg: String, on: Boolean) = toggle("on_home", pkg, on)

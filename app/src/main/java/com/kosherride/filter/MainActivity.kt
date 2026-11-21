@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
         // חיבור אוטומטי לשרת (נרשם רק אחרי הפעלת Device Owner)
         com.kosherride.filter.sync.SyncScheduler.now(this)
+        com.kosherride.filter.firewall.FirewallController(this).fixLockdown()
         com.kosherride.filter.watermark.WatermarkController.sync(this)
 
         // סדר פתיחה: קודם Device Owner, ורק אז קוד.

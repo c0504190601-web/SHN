@@ -63,9 +63,9 @@ class FirewallVpnService : VpnService() {
         safeDisallow(builder, packageName) // הניהול תמיד מחובר
 
         if (!prefs.blockWholeDevice) {
-            val allowed = store.allowedPackages()
-            val installed = AppRepository(this).allPackageNames()
-            allowed.filter { it != packageName && installed.contains(it) }
+            // אפליקציה מורשית יוצאת מהמנהרה וגולשת רגיל; כל השאר נכנסות למנהרה ונחסמות
+            AppRepository(this).allPackageNames()
+                .filter { it != packageName && store.isNetAllowed(it) }
                 .forEach { safeDisallow(builder, it) }
         }
 

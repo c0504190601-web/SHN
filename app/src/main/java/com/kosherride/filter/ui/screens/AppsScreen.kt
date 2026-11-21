@@ -184,7 +184,11 @@ private fun AppRow(st: AppPolicyState, mgr: AppManager, onChanged: () -> Unit) {
 
         if (expanded) {
             Spacer(Modifier.height(6.dp))
-            ToggleRow("אפשר אינטרנט", st.netAllowed) { mgr.setNetAllowed(st.info.packageName, it); onChanged() }
+            ToggleRow("אפשר אינטרנט", st.netAllowed) {
+                mgr.setNetAllowed(st.info.packageName, it)
+                com.kosherride.filter.firewall.FirewallController(ctx).rebuild() // השינוי חל מיד
+                onChanged()
+            }
             ToggleRow("חסום דפדפן פנימי", st.inAppBrowserBlocked) { mgr.setInAppBrowserBlocked(st.info.packageName, it); onChanged() }
             ToggleRow("הצג במסך הבית (קיוסק)", st.onHome) { mgr.setOnHome(st.info.packageName, it); onChanged() }
             ToggleRow("הסתר אפליקציה", st.hidden) { msg = mgr.setHidden(st.info.packageName, it).message; onChanged() }
