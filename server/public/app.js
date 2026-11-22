@@ -131,7 +131,8 @@ function sw(on, onclick) {
   return `<span class="sw ${on ? 'swon' : ''}" onclick="${onclick}"><span class="k"></span></span>`;
 }
 function toggleRow(title, sub, on, onclick) {
-  return `<div class="row"><div><div>${title}</div>${sub ? `<div class="muted">${sub}</div>` : ''}</div>${sw(on, onclick)}</div>`;
+  // לחיצה על כל השורה מחליפה את המתג (כמו באפליקציה)
+  return `<div class="row clickrow" onclick="${onclick}"><div><div>${title}</div>${sub ? `<div class="muted">${sub}</div>` : ''}</div>${sw(on, '')}</div>`;
 }
 
 function renderDevice() {
@@ -182,7 +183,7 @@ function tabDashboard() {
     ${toggleRow('הצג סמל קבוע במרכז המסך',
       !pol.watermark.enabled ? 'כבוי' : (perm === false ? '<span style="color:var(--amber)">ממתין להרשאה במכשיר</span>' : '<span style="color:var(--green)">מוצג</span>'),
       pol.watermark.enabled, "tgl('watermark.enabled')")}
-    <div class="muted">סמל מגן חצי-שקוף עם "כשר". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.</div>
+    <div class="muted">סמל מגן חצי-שקוף עם הכיתוב "נסיעה כשרה". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.</div>
     ${pol.watermark.enabled && perm === false ? '<div class="muted" style="color:var(--amber)">נדרשת במכשיר הרשאה חד-פעמית: "הצגה מעל אפליקציות אחרות".</div>' : ''}
   </div>`;
 
@@ -217,7 +218,7 @@ function tabApps() {
   const q = APPQ.trim().toLowerCase();
   const list = all.filter(a => {
     const st = appState(a.p);
-    if (!APPSYS && a.s) return false;
+    if (!APPSYS && a.s && APPF !== 'HOME' && APPF !== 'PENDING') return false;
     if (q && !a.l.toLowerCase().includes(q) && !a.p.toLowerCase().includes(q)) return false;
     if (APPF === 'MANAGED') return isManaged(st);
     if (APPF === 'HOME') return st.home;
@@ -230,6 +231,7 @@ function tabApps() {
       <span class="fchip ${APPSYS ? 'sel' : ''}" onclick="APPSYS=!APPSYS;renderTab()">${APPSYS ? 'כולל מערכת ✓' : 'אפליקציות מערכת'}</span></div>`;
   if (!CUR.device_owner) h += '<div class="muted" style="color:var(--amber)">שים לב: ללא Device Owner פעיל, פעולות הסתרה/השעיה/מניעת הסרה לא יחולו.</div>';
   if (!all.length) h += '<div class="card muted">רשימת האפליקציות תופיע אחרי הסנכרון הראשון של המכשיר עם הגרסה החדשה של האפליקציה.</div>';
+  if (APPF === 'HOME' && !list.length && !APPQ.trim()) h += '<div class="muted" style="color:var(--amber)">עוד לא נבחרו אפליקציות למסך הבית. כדי להוסיף: עבור ל"הכל", לחץ על אפליקציה והפעל "הצג במסך הבית (קיוסק)".</div>';
   h += `<div class="muted" id="appCount">${list.length} אפליקציות · לחץ על שורה לפעולות</div><div id="appRows">${list.map(appRow).join('')}</div>`;
   return h;
 }
@@ -238,7 +240,7 @@ function renderAppRows() {
   const all = appList(), q = APPQ.trim().toLowerCase();
   const list = all.filter(a => {
     const st = appState(a.p);
-    if (!APPSYS && a.s) return false;
+    if (!APPSYS && a.s && APPF !== 'HOME' && APPF !== 'PENDING') return false;
     if (q && !a.l.toLowerCase().includes(q) && !a.p.toLowerCase().includes(q)) return false;
     if (APPF === 'MANAGED') return isManaged(st);
     if (APPF === 'HOME') return st.home;
@@ -264,7 +266,7 @@ function appRow(a) {
     <div class="app-top">${icon}<div><div class="app-l">${esc(a.l)}</div><div class="app-p">${esc(a.p)}</div></div></div>
     <div class="minis">${chips}</div>`;
   if (open) {
-    const t = (label, key) => `<div class="row" onclick="event.stopPropagation()"><span>${label}</span>${sw(st[key], `appTgl('${P}','${key}')`)}</div>`;
+    const t = (label, key) => `<div class="row clickrow" onclick="event.stopPropagation();appTgl('${P}','${key}')"><span>${label}</span>${sw(st[key], '')}</div>`;
     h += `<div class="app-acts">${t('אפשר אינטרנט', 'net')}${t('חסום דפדפן פנימי', 'browser')}${t('הצג במסך הבית (קיוסק)', 'home')}
       ${t('הסתר אפליקציה', 'hidden')}${t('השעה אפליקציה', 'suspended')}${t('מנע הסרה', 'noUninstall')}
       ${st.pending ? '<div class="muted" style="color:var(--amber)">אפליקציה חדשה — חסומה לרשת עד אישור. הפעלת "אפשר אינטרנט" מאשרת אותה.</div>' : ''}</div>`;
@@ -360,7 +362,7 @@ function tabRestrictions() {
   let h = CUR.device_owner ? '' : '<div class="card muted" style="color:var(--amber)">ההגבלות דורשות Device Owner פעיל במכשיר.</div>';
   RESTRICTIONS.forEach(([group, items]) => {
     h += `<div class="card"><h3>${group}</h3>${items.map(([key, title]) =>
-      `<div class="row"><span>${title}</span>${sw(!!POL.restrictions[key], "tgl('restrictions." + key + "')")}</div>`).join('')}</div>`;
+      `<div class="row clickrow" onclick="tgl('restrictions.${key}')"><span>${title}</span>${sw(!!POL.restrictions[key], '')}</div>`).join('')}</div>`;
   });
   h += `<div class="card"><h3>קיוסק ו-Launcher</h3>
     ${toggleRow('מצב קיוסק', 'רק האפליקציות שסומנו "במסך הבית" יופיעו וייפתחו', POL.kiosk.enabled, "tgl('kiosk.enabled')")}

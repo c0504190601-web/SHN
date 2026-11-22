@@ -37,7 +37,7 @@ class WatermarkView(ctx: Context) : View(ctx) {
         strokeCap = Paint.Cap.ROUND; pathEffect = DashPathEffect(floatArrayOf(5f, 6f), 0f)
     }
     private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = teal; textSize = 26f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
+        color = teal; textSize = 20f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
     }
     private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = teal; textSize = 12f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
@@ -55,8 +55,7 @@ class WatermarkView(ctx: Context) : View(ctx) {
         canvas.drawPath(shield, ring)
         canvas.drawPath(check, road)
         canvas.drawPath(check, dash)
-        canvas.drawText("כשר", 66f, 128f, big)
-        canvas.drawText("נסיעה כשרה", 66f, 150f, small)
+        canvas.drawText("נסיעה כשרה", 66f, 136f, big)
         canvas.restore()
     }
 }

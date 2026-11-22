@@ -76,7 +76,8 @@ fun AppsScreen() {
     }
 
     val filtered = apps.filter { st ->
-        (includeSystem || !st.info.isSystem) &&
+        // במסך הבית וממתינות — מציגים גם אפליקציות מערכת שסומנו (למשל טלפון/מצלמה)
+        (includeSystem || !st.info.isSystem || filter == Filter.HOME || filter == Filter.PENDING) &&
             (query.isBlank() ||
                 st.info.label.contains(query, true) ||
                 st.info.packageName.contains(query, true)) &&
@@ -113,6 +114,13 @@ fun AppsScreen() {
             Text(
                 "שים לב: ללא Device Owner פעיל, פעולות הסתרה/השעיה/מניעת הסרה לא יחולו.",
                 color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(bottom = 6.dp)
+            )
+        }
+
+        if (filter == Filter.HOME && filtered.isEmpty() && query.isBlank()) {
+            Text(
+                "עוד לא נבחרו אפליקציות למסך הבית. כדי להוסיף: עבור ל'הכל', לחץ על אפליקציה והפעל 'הצג במסך הבית (קיוסק)'.",
+                color = NeonAmber, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp)
             )
         }
 
@@ -220,7 +228,7 @@ private fun MiniChip(text: String, c: Color) {
 @Composable
 private fun ToggleRow(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        Modifier.fillMaxWidth().clickable { onToggle(!checked) }.padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

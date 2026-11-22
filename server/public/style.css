@@ -65,3 +65,5 @@ button:active{transform:scale(.98)}
 .m-cyan{color:var(--cyan);border-color:rgba(0,229,255,.45);background:rgba(0,229,255,.08)}
 .m-purple{color:#B388FF;border-color:rgba(179,136,255,.45);background:rgba(179,136,255,.1)}
 .app-acts{margin-top:8px;border-top:1px solid var(--elev);padding-top:4px;cursor:default}
+.clickrow{cursor:pointer}
+.clickrow:hover{background:rgba(0,229,255,.04)}

@@ -50,6 +50,8 @@ import com.kosherride.filter.ui.StatusChip
 import com.kosherride.filter.ui.theme.NeonAmber
 import com.kosherride.filter.ui.theme.NeonCyan
 import com.kosherride.filter.ui.theme.NeonGreen
+import com.kosherride.filter.ui.theme.NeonRed
+import androidx.compose.ui.graphics.Color
 import com.kosherride.filter.ui.theme.TextMuted
 import com.kosherride.filter.ui.theme.TextPrimary
 
@@ -150,6 +152,8 @@ private fun DashboardTab() {
 
     KCard("פרטי מכשיר") { info.forEach { (k, v) -> KeyValueRow(k, v) } }
 
+    ReleaseCard(onDone = { refresh++ })
+
     if (!isDO) {
         KCard("הפעלת Device Owner") {
             Text("אפשרות 1 — ADB:", color = TextPrimary, fontSize = 14.sp)
@@ -219,6 +223,49 @@ private fun DiagnosticsTab() {
     }
 }
 
+/** הסרת ניהול: מחזיר את המכשיר למצב רגיל ומסיר את Device Owner. */
+@Composable
+private fun ReleaseCard(onDone: () -> Unit) {
+    val ctx = LocalContext.current
+    val isDO = remember { DeviceOwnerManager(ctx).isDeviceOwner() }
+    var ask by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+    if (!isDO && result == null) return
+
+    KCard("הסרת ניהול") {
+        Text(
+            "מבטל את כל ההגבלות, החסימות, הקיוסק, חומת האש וסמל הכשרות, מחזיר אפליקציות מוסתרות, " +
+                "ומסיר את האפליקציה מניהול המכשיר. אחרי זה אפשר להסיר אותה כמו כל אפליקציה.",
+            color = TextMuted, fontSize = 12.sp
+        )
+        androidx.compose.material3.Button(
+            onClick = { ask = true },
+            enabled = isDO,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = NeonRed),
+            modifier = Modifier.padding(top = 8.dp)
+        ) { Text("הסר ניהול והחזר את המכשיר למצב רגיל", color = Color.White) }
+        result?.let { Text(it, color = NeonAmber, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)) }
+    }
+
+    if (ask) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { ask = false },
+            title = { Text("להסיר את הניהול?") },
+            text = { Text("כל ההגבלות יבוטלו והמכשיר יחזור למצב רגיל. לחזרה לניהול צריך להגדיר שוב Device Owner דרך מחשב.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    ask = false
+                    result = com.kosherride.filter.devadmin.ReleaseManager.release(ctx).message
+                    onDone()
+                }) { Text("כן, הסר ניהול", color = NeonRed) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { ask = false }) { Text("ביטול") }
+            }
+        )
+    }
+}
+
 /** סמל כשרות קבוע במרכז המסך. */
 @Composable
 private fun WatermarkCard() {
@@ -254,7 +301,7 @@ private fun WatermarkCard() {
             )
         }
         Text(
-            "סמל מגן חצי-שקוף עם \"כשר\". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.",
+            "סמל מגן חצי-שקוף עם הכיתוב \"נסיעה כשרה\". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.",
             color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
         )
         if (on && !perm) {
@@ -682,8 +729,16 @@ private fun RestrictionsTab() {
             defs.forEach { def ->
                 var msg by remember(refresh) { mutableStateOf<String?>(null) }
                 val applied = remember(refresh) { mgr.isApplied(def) }
+                // לחיצה על כל השורה מחליפה את המתג
+                val toggle = { on: Boolean ->
+                    val r = mgr.apply(def, on)
+                    if (!r.ok) msg = r.message
+                    refresh++
+                }
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    Modifier.fillMaxWidth()
+                        .clickable(enabled = isDO) { toggle(!applied) }
+                        .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -694,11 +749,7 @@ private fun RestrictionsTab() {
                     androidx.compose.material3.Switch(
                         checked = applied,
                         enabled = isDO,
-                        onCheckedChange = { on ->
-                            val r = mgr.apply(def, on)
-                            if (!r.ok) msg = r.message
-                            refresh++
-                        }
+                        onCheckedChange = { on -> toggle(on) }
                     )
                 }
             }
@@ -710,7 +761,10 @@ private fun RestrictionsTab() {
         var kmsg by remember(refresh) { mutableStateOf<String?>(null) }
         val enabled = remember(refresh) { kiosk.isEnabled() }
         Row(
-            Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            Modifier.fillMaxWidth().clickable {
+                kmsg = if (!enabled) kiosk.enable() else kiosk.disable(); refresh++
+            },
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(Modifier.weight(1f)) {
