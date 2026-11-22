@@ -67,3 +67,4 @@ button:active{transform:scale(.98)}
 .app-acts{margin-top:8px;border-top:1px solid var(--elev);padding-top:4px;cursor:default}
 .clickrow{cursor:pointer}
 .clickrow:hover{background:rgba(0,229,255,.04)}
+.learn-box{margin:6px 0 6px 0;padding:10px;border:1px solid rgba(179,136,255,.4);border-radius:10px;cursor:default}

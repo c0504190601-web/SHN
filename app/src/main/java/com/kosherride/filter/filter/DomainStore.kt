@@ -39,6 +39,35 @@ class DomainStore(ctx: Context) {
     fun addAppAllowed(pkg: String, d: String) = add("app_$pkg", d)
     fun removeAppAllowed(pkg: String, d: String) = remove("app_$pkg", d)
 
+    fun setAppAllowedAll(pkg: String, items: Collection<String>) =
+        sp.edit().putStringSet("app_$pkg", items.map { norm(it) }.filter { it.isNotEmpty() }.toSet()).apply()
+    fun clearAppAllowed(pkg: String) = sp.edit().remove("app_$pkg").apply()
+
+    // ---- מצב למידה לדפדפן פנימי ----
+    /** עד מתי האפליקציה במצב למידה (מילישניות). 0 = לא לומדת. */
+    fun learnUntil(pkg: String): Long = sp.getLong("learn_$pkg", 0L)
+    fun isLearning(pkg: String): Boolean = System.currentTimeMillis() < learnUntil(pkg)
+    fun startLearning(pkg: String, minutes: Int = LEARN_MINUTES) =
+        sp.edit().putLong("learn_$pkg", System.currentTimeMillis() + minutes * 60_000L).apply()
+    fun stopLearning(pkg: String) = sp.edit().remove("learn_$pkg").apply()
+    /** מזהה הבקשה האחרונה מהאתר שכבר טופלה (כדי לא להתחיל למידה פעמיים). */
+    fun lastLearnRequest(pkg: String): Long = sp.getLong("learnreq_$pkg", 0L)
+    fun setLastLearnRequest(pkg: String, id: Long) = sp.edit().putLong("learnreq_$pkg", id).apply()
+
+    companion object {
+        const val LEARN_MINUTES = 5
+
+        /** הדומיין הבסיסי: m.facebook.com → facebook.com, www.ynet.co.il → ynet.co.il */
+        fun baseDomain(host: String): String {
+            val parts = host.trim().lowercase().trimEnd('.').split('.').filter { it.isNotEmpty() }
+            if (parts.size <= 2) return parts.joinToString(".")
+            val sld = parts[parts.size - 2]
+            val tld = parts.last()
+            val keep = if (tld.length == 2 && sld in setOf("co", "org", "net", "gov", "ac", "com", "edu", "muni", "k12")) 3 else 2
+            return parts.takeLast(keep).joinToString(".")
+        }
+    }
+
     private fun norm(d: String) = d.trim().lowercase().removePrefix("www.")
 
     private fun add(key: String, d: String) {

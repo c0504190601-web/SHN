@@ -53,6 +53,8 @@ object PolicyMapper {
                 apps.put(info.packageName, JSONObject()
                     .put("net", st.netAllowed)
                     .put("browser", st.inAppBrowserBlocked)
+                    .put("browserAllow", JSONArray(DomainStore(ctx).appAllowed(info.packageName).sorted()))
+                    .put("learnUntil", DomainStore(ctx).learnUntil(info.packageName))
                     .put("home", st.onHome)
                     .put("hidden", st.hidden)
                     .put("suspended", st.suspended)
@@ -130,6 +132,11 @@ object PolicyMapper {
                 }
                 if (o.has("browser") && o.optBoolean("browser") != store.isInAppBrowserBlocked(pkg))
                     mgr.setInAppBrowserBlocked(pkg, o.optBoolean("browser"))
+                // דפדפן פנימי: רשימת הכתובות שנלמדו + בקשת למידה מהאתר
+                val ds = DomainStore(ctx)
+                o.optJSONArray("browserAllow")?.let { arr -> ds.setAppAllowedAll(pkg, toList(arr)) }
+                val req = o.optLong("learnRequest", 0L)
+                if (req > ds.lastLearnRequest(pkg)) { ds.setLastLearnRequest(pkg, req); ds.startLearning(pkg) }
                 if (o.has("home") && o.optBoolean("home") != store.isOnHome(pkg)) {
                     mgr.setOnHome(pkg, o.optBoolean("home")); homeChanged = true
                 }

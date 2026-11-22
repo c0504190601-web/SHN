@@ -88,7 +88,12 @@ class AppManager(private val ctx: Context) {
     }
 
     fun setOnHome(pkg: String, on: Boolean) = store.setOnHome(pkg, on)
-    fun setInAppBrowserBlocked(pkg: String, blocked: Boolean) = store.setInAppBrowserBlocked(pkg, blocked)
+    fun setInAppBrowserBlocked(pkg: String, blocked: Boolean) {
+        store.setInAppBrowserBlocked(pkg, blocked)
+        val ds = com.kosherride.filter.filter.DomainStore(ctx)
+        if (blocked && ds.appAllowed(pkg).isEmpty()) ds.startLearning(pkg) // התחלה אוטומטית של למידה
+        if (!blocked) ds.stopLearning(pkg)
+    }
     fun approve(pkg: String) = store.approve(pkg)
 
     /** בונה מצב מלא לאפליקציה — מיזוג מצב מערכת אמיתי והעדפות מקומיות. */

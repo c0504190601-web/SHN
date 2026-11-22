@@ -269,10 +269,31 @@ function appRow(a) {
     const t = (label, key) => `<div class="row clickrow" onclick="event.stopPropagation();appTgl('${P}','${key}')"><span>${label}</span>${sw(st[key], '')}</div>`;
     h += `<div class="app-acts">${t('אפשר אינטרנט', 'net')}${t('חסום דפדפן פנימי', 'browser')}${t('הצג במסך הבית (קיוסק)', 'home')}
       ${t('הסתר אפליקציה', 'hidden')}${t('השעה אפליקציה', 'suspended')}${t('מנע הסרה', 'noUninstall')}
+      ${st.browser ? learnBox(a.p, st) : ''}
       ${st.pending ? '<div class="muted" style="color:var(--amber)">אפליקציה חדשה — חסומה לרשת עד אישור. הפעלת "אפשר אינטרנט" מאשרת אותה.</div>' : ''}</div>`;
   }
   return h + '</div>';
 }
+function learnBox(p, st) {
+  const P = esc(p).replace(/'/g, '');
+  const list = st.browserAllow || [];
+  const learning = (st.learnUntil || 0) > Date.now();
+  const requested = st.learnRequest && st.learnRequest > (st.learnUntil || 0) - 5 * 60000 && !learning;
+  let status;
+  if (learning) status = `<span style="color:var(--amber)">מצב למידה פעיל במכשיר עד ${new Date(st.learnUntil).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</span>`;
+  else if (requested) status = '<span style="color:var(--amber)">בקשת למידה נשלחה — תתחיל במכשיר בסנכרון הבא</span>';
+  else if (!list.length) status = '<span style="color:var(--amber)">עוד לא נלמדו כתובות — הדפדפן הפנימי עדיין לא חסום</span>';
+  else status = `נלמדו ${list.length} כתובות. כל אתר אחר שייפתח מתוך האפליקציה ייחסם.`;
+  return `<div class="learn-box" onclick="event.stopPropagation()">
+    <div>${status}</div>
+    <div class="muted">מצב למידה: 5 דקות שבהן משתמשים באפליקציה כרגיל, וכל כתובת שהיא צריכה נרשמת כמותרת. פועל במצב "סינון דומיינים", אנדרואיד 10 ומעלה.</div>
+    <div>${list.map((d, i) => `<span class="tag"><b onclick="rmLearned('${P}',${i})">✕</b>${esc(d)}</span>`).join('')}</div>
+    <button class="ghost" style="margin-top:6px" onclick="startLearn('${P}')">${list.length ? 'למד עוד (5 דקות)' : 'התחל למידה (5 דקות)'}</button>
+  </div>`;
+}
+function startLearn(p) { const st = appState(p); st.learnRequest = Date.now(); POL.apps[p] = st; changed(); renderAppRows(); }
+function rmLearned(p, i) { const st = appState(p); st.browserAllow = (st.browserAllow || []).slice(); st.browserAllow.splice(i, 1); POL.apps[p] = st; changed(); renderAppRows(); }
+
 function appTgl(p, key) {
   const st = appState(p);
   st[key] = !st[key];

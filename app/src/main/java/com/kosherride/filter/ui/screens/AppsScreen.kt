@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -198,6 +199,7 @@ private fun AppRow(st: AppPolicyState, mgr: AppManager, onChanged: () -> Unit) {
                 onChanged()
             }
             ToggleRow("חסום דפדפן פנימי", st.inAppBrowserBlocked) { mgr.setInAppBrowserBlocked(st.info.packageName, it); onChanged() }
+            if (st.inAppBrowserBlocked) BrowserLearnBox(st.info.packageName)
             ToggleRow("הצג במסך הבית (קיוסק)", st.onHome) { mgr.setOnHome(st.info.packageName, it); onChanged() }
             ToggleRow("הסתר אפליקציה", st.hidden) { msg = mgr.setHidden(st.info.packageName, it).message; onChanged() }
             ToggleRow("השעה אפליקציה", st.suspended) { msg = mgr.setSuspended(st.info.packageName, it).message; onChanged() }
@@ -209,6 +211,70 @@ private fun AppRow(st: AppPolicyState, mgr: AppManager, onChanged: () -> Unit) {
                 )
             }
             msg?.let { Text(it, color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp)) }
+        }
+    }
+}
+
+/** מצב למידה לדפדפן פנימי: רישום הכתובות שהאפליקציה צריכה, וחסימת כל השאר. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BrowserLearnBox(pkg: String) {
+    val ctx = LocalContext.current
+    val ds = remember { com.kosherride.filter.filter.DomainStore(ctx) }
+    var tick by remember { mutableStateOf(0) }
+    val learning = remember(tick) { ds.isLearning(pkg) }
+    val list = remember(tick) { ds.appAllowed(pkg).sorted() }
+    val minsLeft = remember(tick) { ((ds.learnUntil(pkg) - System.currentTimeMillis()) / 60_000L + 1).coerceAtLeast(0) }
+    val fwReady = remember { com.kosherride.filter.firewall.FirewallController(ctx).let { it.isRunning() && it.filterMode() } }
+    androidx.compose.runtime.LaunchedEffect(learning) {
+        while (learning) { kotlinx.coroutines.delay(2000); tick++ }
+    }
+
+    Column(
+        Modifier.fillMaxWidth().padding(start = 8.dp, top = 2.dp, bottom = 6.dp)
+            .border(1.dp, NeonPurpleSafe.copy(alpha = 0.35f), RoundedCornerShape(10.dp)).padding(10.dp)
+    ) {
+        if (learning) {
+            Text("מצב למידה פעיל — נותרו כ-$minsLeft דקות", color = NeonAmber, fontSize = 13.sp)
+            Text(
+                "השתמש עכשיו באפליקציה כרגיל (בלי לפתוח קישורים חיצוניים). כל כתובת שהיא צריכה נרשמת כמותרת.",
+                color = TextMuted, fontSize = 11.sp
+            )
+        } else if (list.isEmpty()) {
+            Text("עוד לא נלמדו כתובות — הדפדפן הפנימי עדיין לא חסום.", color = NeonAmber, fontSize = 12.sp)
+        } else {
+            Text("נלמדו ${list.size} כתובות. כל אתר אחר שייפתח מתוך האפליקציה ייחסם.", color = TextPrimary, fontSize = 12.sp)
+        }
+        if (!fwReady) Text(
+            "פועל רק כשחומת האש פעילה במצב 'סינון דומיינים' (Android 10 ומעלה).",
+            color = NeonAmber, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+        )
+        if (list.isNotEmpty()) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.padding(top = 6.dp)) {
+                list.forEach { d ->
+                    Box(
+                        Modifier.padding(vertical = 2.dp)
+                            .border(1.dp, TextMuted.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                            .clickable { ds.removeAppAllowed(pkg, d); tick++ }
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) { Text("✕ $d", color = TextMuted, fontSize = 10.sp) }
+                }
+            }
+        }
+        Row(Modifier.padding(top = 6.dp)) {
+            if (learning) {
+                OutlinedButton(onClick = { ds.stopLearning(pkg); tick++ }) { Text("סיים למידה", fontSize = 12.sp) }
+            } else {
+                OutlinedButton(onClick = { ds.startLearning(pkg); tick++ }) {
+                    Text(if (list.isEmpty()) "התחל למידה (5 דקות)" else "למד עוד (5 דקות)", fontSize = 12.sp)
+                }
+                if (list.isNotEmpty()) {
+                    Spacer(Modifier.width(6.dp))
+                    OutlinedButton(onClick = { ds.clearAppAllowed(pkg); ds.startLearning(pkg); tick++ }) {
+                        Text("נקה ולמד מחדש", fontSize = 12.sp)
+                    }
+                }
+            }
         }
     }
 }

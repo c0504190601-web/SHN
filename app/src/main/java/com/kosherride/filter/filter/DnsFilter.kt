@@ -68,10 +68,21 @@ class DnsFilter(
         if (pkgs != null && pkgs.isNotEmpty()) {
             val anyAllowed = pkgs.any { appStore.isNetAllowed(it) }
             if (!anyAllowed) return false
-            // רשימת דומיינים ייעודית לאפליקציה (דפדפן פנימי): אם קיימת, רק היא מותרת.
+            // חסימת דפדפן פנימי: האפליקציה מגיעה רק לכתובות שנלמדו עבורה.
             for (p in pkgs) {
+                if (!appStore.isInAppBrowserBlocked(p)) continue
+                if (store.isLearning(p)) {
+                    // מצב למידה: כל כתובת שהאפליקציה פונה אליה נרשמת כמותרת
+                    val base = DomainStore.baseDomain(host)
+                    if (base.isNotEmpty() && !store.appAllowed(p).contains(base)) {
+                        store.addAppAllowed(p, base)
+                        EventLog.info(ctx, "DNS", "נלמד עבור $p: $base")
+                    }
+                    break
+                }
                 val appList = store.appAllowed(p)
-                if (appList.isNotEmpty()) return store.matches(host, appList)
+                // עדיין לא נלמדו כתובות — לא חוסמים (אחרת האפליקציה כולה תפסיק לעבוד)
+                if (appList.isNotEmpty() && !store.matches(host, appList)) return false
             }
         }
         return when (store.listMode) {
