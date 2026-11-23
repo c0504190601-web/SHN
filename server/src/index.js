@@ -29,6 +29,8 @@ app.use('/api', adminRouter);
 app.use('/api/device', deviceRouter);
 
 // אתר הניהול (סטטי)
+// אייקון הלשונית בדפדפן (מגן נסיעה כשרה)
+app.get('/favicon.ico', (_req, res) => res.redirect(301, '/favicon.svg'));
 app.use('/', express.static(path.join(__dirname, '..', 'public')));
 
 app.use((err, _req, res, _next) => {
