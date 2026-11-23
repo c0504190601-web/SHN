@@ -64,8 +64,24 @@ function openByNumber() {
   const n = document.getElementById('devNum').value.trim();
   const err = document.getElementById('numErr');
   err.textContent = '';
-  if (!/^\d+$/.test(n)) { err.textContent = 'הזן מספר מכשיר'; return; }
-  openDevice(n).catch(() => { show('view-devices'); err.textContent = 'מכשיר ' + n + ' לא נמצא'; });
+  if (!n) { err.textContent = 'הזן מספר או שם מכשיר'; return; }
+  if (/^\d+$/.test(n)) {
+    openDevice(n).catch(() => { show('view-devices'); err.textContent = 'מכשיר ' + n + ' לא נמצא'; });
+    return;
+  }
+  // חיפוש לפי שם
+  const q = n.toLowerCase();
+  const hits = DEVICES.filter(d => (d.name || '').toLowerCase().includes(q));
+  if (hits.length === 1) {
+    openDevice(hits[0].id).catch(e => { show('view-devices'); err.textContent = e.message; });
+  } else if (hits.length === 0) {
+    err.textContent = 'לא נמצא מכשיר בשם "' + n + '"';
+  } else {
+    // כמה מכשירים מתאימים — מציגים אותם ברשימה למטה
+    document.getElementById('devFilter').value = n;
+    renderDeviceList();
+    err.textContent = 'נמצאו ' + hits.length + ' מכשירים — בחר מהרשימה למטה';
+  }
 }
 
 function renderDeviceList() {

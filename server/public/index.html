@@ -29,10 +29,10 @@
 <!-- רשימת מכשירים -->
 <div class="container hidden" id="view-devices">
   <div class="card">
-    <h3>כניסה למכשיר לפי מספר</h3>
-    <div class="muted">המספר מופיע באפליקציה במכשיר, בראש המסך.</div>
+    <h3>כניסה למכשיר לפי מספר או שם</h3>
+    <div class="muted">המספר מופיע באפליקציה במכשיר, בראש המסך. אפשר גם להקליד את השם שנתת למכשיר.</div>
     <div class="grid2">
-      <input type="text" id="devNum" inputmode="numeric" placeholder="מספר מכשיר, למשל 100"
+      <input type="text" id="devNum" placeholder="מספר או שם, למשל 100 או כהן"
              onkeydown="if(event.key==='Enter')openByNumber()">
       <button onclick="openByNumber()">כניסה</button>
     </div>
