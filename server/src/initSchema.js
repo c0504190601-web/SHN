@@ -26,11 +26,21 @@ export async function ensureSchema() {
     await q('ALTER SEQUENCE device_number_seq MINVALUE 100 RESTART WITH 100');
   }
 
-  const existing = await q('SELECT id FROM admins WHERE username=$1', [username]);
-  if (existing.rowCount === 0) {
+  // מנהל יחיד: שם המשתמש והסיסמה נקבעים לפי ADMIN_USERNAME / ADMIN_PASSWORD ב-Render.
+  // שינוי שלהם שם ופריסה מחדש מעדכנים את המנהל הקיים (והמכשירים נשארים משויכים אליו).
+  const first = await q('SELECT id, username, password FROM admins ORDER BY id LIMIT 1');
+  if (first.rowCount === 0) {
     const hash = await bcrypt.hash(password, 12);
     await q('INSERT INTO admins (username, password) VALUES ($1,$2)', [username, hash]);
     console.log(`נוצר מנהל ראשוני: ${username}`);
+  } else {
+    const a = first.rows[0];
+    const samePass = await bcrypt.compare(password, a.password);
+    if (a.username !== username || !samePass) {
+      const hash = samePass ? a.password : await bcrypt.hash(password, 12);
+      await q('UPDATE admins SET username=$2, password=$3 WHERE id=$1', [a.id, username, hash]);
+      console.log(`פרטי המנהל עודכנו: ${username}`);
+    }
   }
   // כל מכשיר שעוד לא משויך — שייך למנהל (יש מנהל אחד)
   await q('UPDATE devices SET admin_id=(SELECT id FROM admins ORDER BY id LIMIT 1) WHERE admin_id IS NULL');
