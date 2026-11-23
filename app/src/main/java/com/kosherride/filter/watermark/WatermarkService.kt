@@ -65,16 +65,13 @@ class WatermarkService : Service() {
         }
     }
 
-    private fun show() {
-        if (view != null) return
-        if (!Settings.canDrawOverlays(this)) {
-            EventLog.warn(this, "Watermark", "אין הרשאת 'הצגה מעל אפליקציות' — הסמל לא מוצג")
-            stopSelf(); return
-        }
-        val w = getSystemService(WINDOW_SERVICE) as WindowManager
+    /** גודל ומיקום לפי ההגדרה: במרכז (גדול) או בצד שמאל (קטן). */
+    private fun layoutParams(): WindowManager.LayoutParams {
         val dm = resources.displayMetrics
-        val size = (minOf(dm.widthPixels, dm.heightPixels) * 0.42f).toInt()
-        val lp = WindowManager.LayoutParams(
+        val left = WatermarkController.position(this) == "left"
+        val frac = if (left) 0.18f else 0.42f
+        val size = (minOf(dm.widthPixels, dm.heightPixels) * frac).toInt()
+        return WindowManager.LayoutParams(
             size, (size * 178f / 132f).toInt(),
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -83,12 +80,28 @@ class WatermarkService : Service() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             PixelFormat.TRANSLUCENT
         ).apply {
-            gravity = Gravity.CENTER
+            // Gravity.LEFT (ולא START) — צד שמאל של המסך גם בממשק בעברית
+            gravity = if (left) Gravity.LEFT or Gravity.CENTER_VERTICAL else Gravity.CENTER
+            x = if (left) (12 * dm.density).toInt() else 0
             alpha = 0.8f // מגבלת המערכת לחלונות שקופים ללחיצות; השקיפות העיקרית בתוך הציור
         }
-        val v = WatermarkView(this).apply { alpha = 0.35f }
+    }
+
+    private fun show() {
+        val existing = view
+        if (existing != null) {
+            // כבר מוצג — רק מעדכנים מיקום/גודל אם ההגדרה השתנתה
+            runCatching { wm?.updateViewLayout(existing, layoutParams()) }
+            return
+        }
+        if (!Settings.canDrawOverlays(this)) {
+            EventLog.warn(this, "Watermark", "אין הרשאת 'הצגה מעל אפליקציות' — הסמל לא מוצג")
+            stopSelf(); return
+        }
+        val w = getSystemService(WINDOW_SERVICE) as WindowManager
+        val v = WatermarkView(this).apply { alpha = 0.22f } // שקוף יותר
         try {
-            w.addView(v, lp)
+            w.addView(v, layoutParams())
             wm = w; view = v
             EventLog.info(this, "Watermark", "סמל הכשרות מוצג")
         } catch (e: Exception) {

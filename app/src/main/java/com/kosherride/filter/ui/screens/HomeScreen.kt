@@ -304,6 +304,15 @@ private fun WatermarkCard() {
             "סמל מגן חצי-שקוף עם הכיתוב \"נסיעה כשרה\". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.",
             color = TextMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp)
         )
+        // מיקום הסמל
+        var pos by remember { mutableStateOf(wc.position(ctx)) }
+        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("מיקום:", color = TextPrimary, fontSize = 13.sp)
+            Spacer(Modifier.width(8.dp))
+            ModeChip("במרכז (גדול)", pos == "center") { wc.setPosition(ctx, "center"); pos = "center" }
+            Spacer(Modifier.width(6.dp))
+            ModeChip("בצד שמאל (קטן)", pos == "left") { wc.setPosition(ctx, "left"); pos = "left" }
+        }
         if (on && !perm) {
             Text(
                 "נדרשת הרשאה חד-פעמית: \"הצגה מעל אפליקציות אחרות\".",

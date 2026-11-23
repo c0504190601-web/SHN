@@ -102,7 +102,7 @@ function defPolicy(p) {
   p.kiosk = Object.assign({ enabled: false }, p.kiosk || {});
   p.domains = Object.assign({ mode: 'BLOCK', blocked: [], allowed: [] }, p.domains || {});
   p.domains.blocked = p.domains.blocked || []; p.domains.allowed = p.domains.allowed || [];
-  p.watermark = Object.assign({ enabled: false }, p.watermark || {});
+  p.watermark = Object.assign({ enabled: false, position: 'center' }, p.watermark || {});
   p.mapsFilter = Object.assign({ enabled: false, extra: [] }, p.mapsFilter || {});
   p.mapsFilter.extra = p.mapsFilter.extra || [];
   p.icon = Object.assign({ hidden: false }, p.icon || {});
@@ -184,6 +184,9 @@ function tabDashboard() {
       !pol.watermark.enabled ? 'כבוי' : (perm === false ? '<span style="color:var(--amber)">ממתין להרשאה במכשיר</span>' : '<span style="color:var(--green)">מוצג</span>'),
       pol.watermark.enabled, "tgl('watermark.enabled')")}
     <div class="muted">סמל מגן חצי-שקוף עם הכיתוב "נסיעה כשרה". לחיצות עוברות דרכו, כך שהוא לא מפריע לשימוש.</div>
+    <div class="fchips" style="align-items:center"><span>מיקום:</span>
+      <span class="fchip ${pol.watermark.position !== 'left' ? 'sel' : ''}" onclick="POL.watermark.position='center';changed();renderTab()">במרכז (גדול)</span>
+      <span class="fchip ${pol.watermark.position === 'left' ? 'sel' : ''}" onclick="POL.watermark.position='left';changed();renderTab()">בצד שמאל (קטן)</span></div>
     ${pol.watermark.enabled && perm === false ? '<div class="muted" style="color:var(--amber)">נדרשת במכשיר הרשאה חד-פעמית: "הצגה מעל אפליקציות אחרות".</div>' : ''}
   </div>`;
 

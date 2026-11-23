@@ -18,6 +18,16 @@ object WatermarkController {
         sync(ctx)
     }
 
+    /** מיקום הסמל: "center" (במרכז, גדול) או "left" (בצד שמאל, קטן). */
+    fun position(ctx: Context): String = sp(ctx).getString("watermark_pos", "center") ?: "center"
+
+    fun setPosition(ctx: Context, pos: String) {
+        val v = if (pos == "left") "left" else "center"
+        if (v == position(ctx)) return
+        sp(ctx).edit().putString("watermark_pos", v).apply()
+        sync(ctx)
+    }
+
     fun hasPermission(ctx: Context): Boolean = Settings.canDrawOverlays(ctx)
 
     /** מסך ההגדרות של "הצגה מעל אפליקציות אחרות" עבור האפליקציה. */

@@ -71,7 +71,9 @@ object PolicyMapper {
             .put("kiosk", kiosk)
             .put("domains", domains)
             .put("mapsFilter", maps)
-            .put("watermark", JSONObject().put("enabled", com.kosherride.filter.watermark.WatermarkController.enabled(ctx)))
+            .put("watermark", JSONObject()
+                .put("enabled", com.kosherride.filter.watermark.WatermarkController.enabled(ctx))
+                .put("position", com.kosherride.filter.watermark.WatermarkController.position(ctx)))
     }
 
     /** מחיל מדיניות שהתקבלה מהשרת על המכשיר. */
@@ -157,6 +159,7 @@ object PolicyMapper {
         // סמל כשרות על המסך
         policy.optJSONObject("watermark")?.let { w ->
             val wc = com.kosherride.filter.watermark.WatermarkController
+            if (w.has("position")) wc.setPosition(ctx, w.optString("position"))
             wc.setEnabled(ctx, w.optBoolean("enabled", wc.enabled(ctx)))
         }
 
