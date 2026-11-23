@@ -68,3 +68,7 @@ button:active{transform:scale(.98)}
 .clickrow{cursor:pointer}
 .clickrow:hover{background:rgba(0,229,255,.04)}
 .learn-box{margin:6px 0 6px 0;padding:10px;border:1px solid rgba(179,136,255,.4);border-radius:10px;cursor:default}
+.brand-wrap{display:inline-flex;align-items:center;gap:8px}
+.logo-sm{width:26px;height:34px}
+.login-logo{text-align:center;margin-top:28px}
+.logo-lg{width:120px;height:160px}

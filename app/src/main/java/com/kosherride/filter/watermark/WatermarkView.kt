@@ -37,7 +37,7 @@ class WatermarkView(ctx: Context) : View(ctx) {
         strokeCap = Paint.Cap.ROUND; pathEffect = DashPathEffect(floatArrayOf(5f, 6f), 0f)
     }
     private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = teal; textSize = 20f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
+        color = teal; textSize = 16f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
     }
     private val small = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = teal; textSize = 12f; textAlign = Paint.Align.CENTER; typeface = Typeface.DEFAULT_BOLD
